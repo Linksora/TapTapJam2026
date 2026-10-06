@@ -1,0 +1,13 @@
+DialogueID,EntryClueID,Speaker,TextContent,PortraitPath,Option1_Text,Option1_Target,Option2_Text,Option2_Target,NextDialogueID
+D_101,,小毛,侦探，你终于来了，找我有什么事？,Portraits/Cat_Happy,,,,,D_102
+D_102,,侦探,现场发现了一些线索，需要你当场解释清楚。,Portraits/Detective_Normal,质疑他的说法,D_130,先顺着他的话说,D_131,
+D_130,,侦探,不用装了，你在隐瞒什么？,Portraits/Detective_Shock,,,,,D_104
+D_131,,侦探,好，那我们先一起确认一下凶器。,Portraits/Detective_Smile,,,,,D_104
+D_104,,小毛,凶器？这……这能说明什么啊！,Portraits/Cat_Hesitant,,,,,Q_01
+D_105,,侦探,水果刀就是真正的凶器。证物已经放进背包，点开仔细看看。,Portraits/Detective_Normal,,,,,-1
+D_105_W,,小毛,哈哈，毛线团和苹果怎么可能是凶器嘛，再想想。,Portraits/Cat_Happy,,,,,Q_01
+D_Show_Yarn,C_Yarn,小毛,我的毛线团！怎么跑到你那里去了？,Portraits/Cat_Happy,,,,,-1
+D_Show_Apple,C_Apple,小毛,苹果？我、我现在不想吃苹果。,Portraits/Cat_Happy,,,,,-1
+D_Show_Knife1,C_Knife_1,小毛,这、这把刀不是我的！你不要乱说！,Portraits/Cat_Wrong,,,,,Q_02
+D_Q02_W,,小毛,你拿这个来质问我？根本证明不了什么！,Portraits/Cat_Wrong,,,,,Q_02
+D_End,,小毛,我……我认罪。人是我做的。,Portraits/Cat_Hesitant,,,,,-1

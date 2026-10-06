@@ -1,0 +1,5 @@
+ClueID,Name,IconPath,Description,NextClueID
+C_Knife_0,沾血的水果刀,Icons/Knife_0,刀身上的血迹有被擦拭过的痕迹，刀柄上似乎还刻着什么。,C_Knife_1
+C_Knife_1,带刻痕的水果刀,Icons/Knife_1,刀柄上清晰地刻着字母 M，和小毛名字的首字母一模一样。,
+C_Yarn,红毛线团,Icons/Yarn,小毛最喜欢的红色毛线团，走到哪里都带着。,
+C_Apple,苹果,Icons/Apple,一个普普通通的红苹果。,
