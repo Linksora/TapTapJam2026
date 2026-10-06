@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 081781e1f08514fd3a88cd1ee325f345, type: 3}
+  m_Name: D_105_W
+  m_EditorClassIdentifier: Assembly-CSharp::DialogueData
+  dialogueId: D_105_W
+  entryClue: {fileID: 0}
+  speaker: "\u5C0F\u6BDB"
+  text: "\u54C8\u54C8\uFF0C\u6BDB\u7EBF\u56E2\u548C\u82F9\u679C\u600E\u4E48\u53EF\u80FD\u662F\u51F6\u5668\u561B\uFF0C\u518D\u60F3\u60F3\u3002"
+  portrait: {fileID: 8802811336715377525, guid: 1c80b373f318b49008b318f0add00994, type: 3}
+  option1Text: 
+  option1Target: 
+  option2Text: 
+  option2Target: 
+  nextTarget: Q_01

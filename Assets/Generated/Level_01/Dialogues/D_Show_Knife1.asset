@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 081781e1f08514fd3a88cd1ee325f345, type: 3}
+  m_Name: D_Show_Knife1
+  m_EditorClassIdentifier: Assembly-CSharp::DialogueData
+  dialogueId: D_Show_Knife1
+  entryClue: {fileID: 11400000, guid: 87b80f6d21f874688873da6605930366, type: 2}
+  speaker: "\u5C0F\u6BDB"
+  text: "\u8FD9\u3001\u8FD9\u628A\u5200\u4E0D\u662F\u6211\u7684\uFF01\u4F60\u4E0D\u8981\u4E71\u8BF4\uFF01"
+  portrait: {fileID: 8524796785795437667, guid: 80c5f36717a44477aa2b34d9980d0d4b, type: 3}
+  option1Text: 
+  option1Target: 
+  option2Text: 
+  option2Target: 
+  nextTarget: Q_02
