@@ -6,12 +6,15 @@ using UnityEditor;
 using UnityEngine;
 
 /// <summary>
-/// 把 Assets/Data/{level}/ 下的三张 CSV 导入为 Assets/Generated/{level}/ 下的 ScriptableObject。
-/// 图片按 IconPath/PortraitPath 的末段文件名在 Generated/{level} 内查找 PNG，需提前把同名图片放到该目录。
+/// 把 Assets/Data/{level}/ 下的三张 CSV 导入为 Assets/Resources/LevelData/{level}/ 下的 ScriptableObject，
+/// 供运行时 Resources.Load("LevelData/{level}/LevelDatabase") 读取。
+/// 物品图标仍按 IconPath 文件名在 Assets/Generated/{level} 内查找 PNG 并连线；
+/// 立绘只存文件名，运行时从 Resources/Portraits 按名字加载。
 /// </summary>
 public static class LevelDataImporter
 {
     private const string DataRoot = "Assets/Data";
+    private const string ResourceRoot = "Assets/Resources/LevelData";
     private const string GeneratedRoot = "Assets/Generated";
 
     [MenuItem("TapJam/Import All Level CSV")]
@@ -40,7 +43,7 @@ public static class LevelDataImporter
     public static LevelDatabase ImportLevel(string level)
     {
         string inputDir = $"{DataRoot}/{level}";
-        string outputRoot = $"{GeneratedRoot}/{level}";
+        string outputRoot = $"{ResourceRoot}/{level}";
         Directory.CreateDirectory($"{outputRoot}/Clues");
         Directory.CreateDirectory($"{outputRoot}/Dialogues");
         Directory.CreateDirectory($"{outputRoot}/Questions");
@@ -105,7 +108,7 @@ public static class LevelDataImporter
             SetObject(serialized, "entryClue", clueMap.GetValueOrDefault(scriptTable.Get(i, "EntryClueID").Trim()));
             SetString(serialized, "speaker", scriptTable.Get(i, "Speaker"));
             SetString(serialized, "text", scriptTable.Get(i, "TextContent"));
-            SetObject(serialized, "portrait", LoadSprite(level, scriptTable.Get(i, "PortraitPath")));
+            SetString(serialized, "portraitPath", scriptTable.Get(i, "PortraitPath").Trim());
             SetString(serialized, "option1Text", scriptTable.Get(i, "Option1_Text"));
             SetString(serialized, "option1Target", scriptTable.Get(i, "Option1_Target").Trim());
             SetString(serialized, "option2Text", scriptTable.Get(i, "Option2_Text"));
@@ -146,8 +149,8 @@ public static class LevelDataImporter
             SetString(serialized, "successTarget", assemblyTable.Get(i, "SuccessDialogueID").Trim());
             SetObject(serialized, "successClue", clueMap.GetValueOrDefault(assemblyTable.Get(i, "SuccessClueID").Trim()));
             SetString(serialized, "wrongTarget", assemblyTable.Get(i, "WrongDialogueID").Trim());
-            SetObject(serialized, "wrongPortrait", LoadSprite(level, assemblyTable.Get(i, "WrongPortraitPath")));
-            SetObject(serialized, "hesitantPortrait", LoadSprite(level, assemblyTable.Get(i, "HesitantPortraitPath")));
+            SetString(serialized, "wrongPortraitPath", assemblyTable.Get(i, "WrongPortraitPath").Trim());
+            SetString(serialized, "hesitantPortraitPath", assemblyTable.Get(i, "HesitantPortraitPath").Trim());
             SetObject(serialized, "targetClue", clueMap.GetValueOrDefault(assemblyTable.Get(i, "TargetClueID").Trim()));
             serialized.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(question);
@@ -215,6 +218,7 @@ public static class LevelDataImporter
             leaf = leaf.Substring(slash + 1);
         }
 
+        // 物品图标仍由 Generated 里的占位 PNG 提供，以后换正式图标覆盖同名文件即可。
         return AssetDatabase.LoadAssetAtPath<Sprite>($"{GeneratedRoot}/{level}/{leaf}.png");
     }
 

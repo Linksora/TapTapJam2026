@@ -1,3 +1,3 @@
 QuestionID,StatementText,Options,CorrectOption,SuccessDialogueID,SuccessClueID,WrongDialogueID,WrongPortraitPath,HesitantPortraitPath,TargetClueID
-Q_01,凶手在现场遗留的凶器是{0}。,水果刀|毛线团|苹果,0,D_105,C_Knife_0,D_105_W,Portraits/Cat_Wrong,Portraits/Cat_Hesitant,
-Q_02,你说你没去过现场，那这把刻着 M 的水果刀怎么解释？,,,D_End,,D_Q02_W,Portraits/Cat_Wrong,Portraits/Cat_Hesitant,C_Knife_1
+Q_01,凶手在现场遗留的凶器是{0}。,水果刀|毛线团|苹果,0,D_105,C_Knife_0,D_105_W,小毛,小毛,
+Q_02,你说你没去过现场，那这把刻着 M 的水果刀怎么解释？,,,D_End,,D_Q02_W,小毛,小毛,C_Knife_1
