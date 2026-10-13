@@ -11,9 +11,10 @@ public sealed class LevelDatabase : ScriptableObject
     [SerializeField] private List<DialogueData> dialogues = new();
     [SerializeField] private List<QuestionData> questions = new();
 
-    private readonly Dictionary<string, ItemData> clueMap = new();
-    private readonly Dictionary<string, DialogueData> dialogueMap = new();
-    private readonly Dictionary<string, QuestionData> questionMap = new();
+    // 非序列化字段：ScriptableObject 反序列化时为 null，且不能用 readonly（要在 BuildIndex 里兜底创建）。
+    private Dictionary<string, ItemData> clueMap = new();
+    private Dictionary<string, DialogueData> dialogueMap = new();
+    private Dictionary<string, QuestionData> questionMap = new();
 
     public string StartDialogueId => startDialogueId;
 
@@ -24,6 +25,10 @@ public sealed class LevelDatabase : ScriptableObject
 
     public void BuildIndex()
     {
+        // ScriptableObject 反序列化时不跑字段初始化器，这里必须按需 new，不能直接 Clear。
+        clueMap ??= new Dictionary<string, ItemData>();
+        dialogueMap ??= new Dictionary<string, DialogueData>();
+        questionMap ??= new Dictionary<string, QuestionData>();
         clueMap.Clear();
         dialogueMap.Clear();
         questionMap.Clear();

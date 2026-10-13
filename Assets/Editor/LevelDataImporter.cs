@@ -44,6 +44,9 @@ public static class LevelDataImporter
     {
         string inputDir = $"{DataRoot}/{level}";
         string outputRoot = $"{ResourceRoot}/{level}";
+
+        // 增量更新：目录/asset 已存在就复用，不删除重建——GUID 保持稳定，外部引用不断。
+        // 新建分支的写入可靠性由 CreateOrUpdate 内部保证；CSV 删掉的行由末尾 CleanupOrphans 清理。
         Directory.CreateDirectory($"{outputRoot}/Clues");
         Directory.CreateDirectory($"{outputRoot}/Dialogues");
         Directory.CreateDirectory($"{outputRoot}/Questions");
@@ -94,6 +97,7 @@ public static class LevelDataImporter
         }
 
         var dialogueOrder = new List<DialogueData>();
+        var dialogueIds = new HashSet<string>();
         for (int i = 0; i < scriptTable.RowCount; i++)
         {
             string id = scriptTable.Get(i, "DialogueID").Trim();
@@ -102,6 +106,7 @@ public static class LevelDataImporter
                 continue;
             }
 
+            dialogueIds.Add(id);
             DialogueData dialogue = CreateOrUpdate<DialogueData>($"{outputRoot}/Dialogues/{id}.asset");
             var serialized = new SerializedObject(dialogue);
             SetString(serialized, "dialogueId", id);
@@ -120,6 +125,7 @@ public static class LevelDataImporter
         }
 
         var questionOrder = new List<QuestionData>();
+        var questionIds = new HashSet<string>();
         for (int i = 0; i < assemblyTable.RowCount; i++)
         {
             string id = assemblyTable.Get(i, "QuestionID").Trim();
@@ -128,6 +134,7 @@ public static class LevelDataImporter
                 continue;
             }
 
+            questionIds.Add(id);
             QuestionData question = CreateOrUpdate<QuestionData>($"{outputRoot}/Questions/{id}.asset");
             var serialized = new SerializedObject(question);
             SetString(serialized, "questionId", id);
@@ -168,9 +175,40 @@ public static class LevelDataImporter
         EditorUtility.SetDirty(database);
 
         AssetDatabase.SaveAssets();
+
+        // 清理 CSV 已删除行对应的旧 asset（只动三个子目录，LevelDatabase 自身永不删）。
+        int removed = 0;
+        removed += CleanupOrphans($"{outputRoot}/Clues", clueMap.Keys);
+        removed += CleanupOrphans($"{outputRoot}/Dialogues", dialogueIds);
+        removed += CleanupOrphans($"{outputRoot}/Questions", questionIds);
+
         AssetDatabase.Refresh();
-        Debug.Log($"关卡 {level} 导入完成：{clueOrder.Count} 条线索、{dialogueOrder.Count} 句对话、{questionOrder.Count} 道题目。");
+        Debug.Log($"关卡 {level} 导入完成：{clueOrder.Count} 条线索、{dialogueOrder.Count} 句对话、{questionOrder.Count} 道题目，清理失效 asset {removed} 个。");
         return database;
+    }
+
+    /// <summary>删除 folder 下文件名（不含扩展名）不在 validIds 中的 .asset。</summary>
+    private static int CleanupOrphans(string folder, IEnumerable<string> validIds)
+    {
+        if (!Directory.Exists(folder))
+        {
+            return 0;
+        }
+
+        var valid = new HashSet<string>(validIds);
+        int removed = 0;
+        foreach (string assetPath in Directory.GetFiles(folder, "*.asset"))
+        {
+            string normalized = assetPath.Replace('\\', '/');
+            string id = Path.GetFileNameWithoutExtension(normalized);
+            if (!valid.Contains(id))
+            {
+                AssetDatabase.DeleteAsset(normalized);
+                removed++;
+            }
+        }
+
+        return removed;
     }
 
     private static void ValidateRowWidth(string level, string tableName, CsvTable table)
@@ -199,6 +237,11 @@ public static class LevelDataImporter
         {
             asset = ScriptableObject.CreateInstance<T>();
             AssetDatabase.CreateAsset(asset, assetPath);
+            // 关键：先落盘，再取回 AssetDatabase 已注册的持久对象。
+            // 若直接用 CreateAsset 返回的临时实例做 SerializedObject 写入，
+            // 修改不会落盘——表现为生成的 asset 存在但字段全空，运行时对话全部找不到。
+            AssetDatabase.SaveAssets();
+            asset = AssetDatabase.LoadAssetAtPath<T>(assetPath);
         }
 
         return asset;

@@ -33,7 +33,8 @@ public sealed class StoryManager : MonoBehaviour
             return;
         }
 
-        dialogueBox = FindFirstObjectByType<DialogueBoxView>();
+        // DialogueBox 默认隐藏（Builder 里 SetActive(false)），必须包含 inactive 对象才能找到。
+        dialogueBox = FindFirstObjectByType<DialogueBoxView>(FindObjectsInactive.Include);
         if (dialogueBox == null)
         {
             Debug.LogError("[StoryManager] 场景中没有 DialogueBoxView。");

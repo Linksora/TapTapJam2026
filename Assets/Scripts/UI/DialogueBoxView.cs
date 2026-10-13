@@ -17,6 +17,7 @@ public sealed class DialogueBoxView : MonoBehaviour
     [SerializeField] private Button[] optionButtons;
 
     private Action[] callbacks;
+    private GameObject optionsRoot;
 
     private void Awake()
     {
@@ -52,20 +53,30 @@ public sealed class DialogueBoxView : MonoBehaviour
                 optionButtons[i].onClick.AddListener(() => HandleOption(index));
             }
         }
+
+        // 选项按钮共用同一个父容器，由 SetOptionCount 统一开关，不依赖场景里的默认状态。
+        if (count > 0 && optionButtons[0] != null)
+        {
+            optionsRoot = optionButtons[0].transform.parent.gameObject;
+        }
+
+        SetOptionCount(0);
     }
 
     /// <summary>显示纯台词（无选项，需手动 Hide 或再次 Show）。</summary>
     public void Show(string speaker, string content, Sprite portrait = null)
     {
+        // 先激活：若面板此前处于 inactive，Awake 会在此刻立即执行，保证字体/回调就绪。
+        gameObject.SetActive(true);
         Render(speaker, content, portrait);
         SetOptionCount(0);
-        gameObject.SetActive(true);
     }
 
     /// <summary>显示台词并弹出选项（最多两个，超出忽略）。</summary>
     public void Show(string speaker, string content, Sprite portrait,
         params (string text, Action onClick)[] options)
     {
+        gameObject.SetActive(true);
         Render(speaker, content, portrait);
 
         int count = Mathf.Min(options != null ? options.Length : 0,
@@ -84,8 +95,6 @@ public sealed class DialogueBoxView : MonoBehaviour
                 label.text = options[i].text;
             }
         }
-
-        gameObject.SetActive(true);
     }
 
     public void Hide()
@@ -119,11 +128,13 @@ public sealed class DialogueBoxView : MonoBehaviour
         if (speakerText != null)
         {
             speakerText.text = speaker ?? string.Empty;
+            speakerText.gameObject.SetActive(true);
         }
 
         if (contentText != null)
         {
             contentText.text = content ?? string.Empty;
+            contentText.gameObject.SetActive(true);
         }
 
         if (portraitImage != null)
@@ -138,6 +149,12 @@ public sealed class DialogueBoxView : MonoBehaviour
         if (optionButtons == null)
         {
             return;
+        }
+
+        // 父容器随选项数量开关：有选项才显示整个选项区。
+        if (optionsRoot != null)
+        {
+            optionsRoot.SetActive(count > 0);
         }
 
         for (int i = 0; i < optionButtons.Length; i++)

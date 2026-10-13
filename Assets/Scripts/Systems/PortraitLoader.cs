@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using UnityEngine;
 
 /// <summary>
@@ -62,14 +63,33 @@ public static class PortraitLoader
                 continue;
             }
 
-            if (artIndex.TryGetValue(sprite.name, out Sprite existing) && existing != sprite)
-            {
-                Debug.LogWarning($"[PortraitLoader] Resources/Art 下存在同名图片：{sprite.name}，" +
-                                 "按文件名加载只会取到其中一张，请给不同图片起不同文件名。");
-                continue;
-            }
+            AddToIndex(sprite, sprite.name);
 
-            artIndex[sprite.name] = sprite;
+            // Multiple 模式下 Unity 给自动切出的子精灵追加 _0/_1 后缀（如 小毛_0），
+            // CSV 里只写文件名（小毛），这里登记一个去掉后缀的别名，两种写法都能命中。
+            string alias = StripSliceSuffix(sprite.name);
+            if (alias != sprite.name)
+            {
+                AddToIndex(sprite, alias);
+            }
         }
+    }
+
+    private static void AddToIndex(Sprite sprite, string key)
+    {
+        if (artIndex.TryGetValue(key, out Sprite existing) && existing != sprite)
+        {
+            Debug.LogWarning($"[PortraitLoader] Resources/Art 下存在同名图片：{key}，" +
+                             "按文件名加载只会取到其中一张，请给不同图片起不同文件名。");
+            return;
+        }
+
+        artIndex[key] = sprite;
+    }
+
+    private static string StripSliceSuffix(string spriteName)
+    {
+        // 仅去掉结尾的 _数字（Unity 切片自动命名），普通文件名里的下划线不受影响。
+        return Regex.Replace(spriteName, @"_\d+$", string.Empty);
     }
 }
