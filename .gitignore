@@ -112,3 +112,10 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# 由 Tools/同步美术到 Resources 镜像生成，源文件在 Assets/美术合集
+/[Aa]ssets/[Rr]esources/[Aa]rt/
+/[Aa]ssets/[Rr]esources/[Aa]rt.meta
+# 由 TapJam/Import All Level CSV 从 CSV 生成
+/[Aa]ssets/[Rr]esources/[Ll]evel[Dd]ata/
+/[Aa]ssets/[Rr]esources/[Ll]evel[Dd]ata.meta
