@@ -1,9 +1,12 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 /// <summary>
-/// 按住左右方向键（或 A/D）水平移动相机，视野被夹在背景图边界内。
+/// 水平移动相机：键盘 ←→/A D 或按住界面上的左右按钮，视野被夹在背景图边界内。
 /// 挂在 Main Camera 上，背景精灵用于计算可移动范围。
+/// 键盘按下时，对应按钮同步显示 Button 的 Pressed 视觉状态。
 /// </summary>
 public sealed class ScenePanner : MonoBehaviour
 {
@@ -11,11 +14,22 @@ public sealed class ScenePanner : MonoBehaviour
     [SerializeField] private float moveSpeed = 300f;
     [SerializeField] private float smoothTime = 0.12f;
     [SerializeField] private float edgePadding = 0.3f;
+    // 按钮一律按物体名查找，不做 Inspector 序列化接线：
+    // 场景复制/按钮删改后引用不会丢，新建场景只要保留这两个名字即可。
+    private const string LeftButtonName = "LeftButton";
+    private const string RightButtonName = "RightButton";
+
+    private HoldButton leftHoldButton;
+    private HoldButton rightHoldButton;
 
     private Camera targetCamera;
     private float minX;
     private float maxX;
     private float dampVelocity;
+
+    private PointerEventData syntheticPointer;
+    private bool keyLeftVisual;
+    private bool keyRightVisual;
 
     private void Awake()
     {
@@ -40,19 +54,25 @@ public sealed class ScenePanner : MonoBehaviour
 
     private void Update()
     {
+        ResolveButtons();
+
         Keyboard keyboard = Keyboard.current;
-        if (keyboard == null)
-        {
-            return;
-        }
+        bool keyLeft = keyboard != null && (keyboard.leftArrowKey.isPressed || keyboard.aKey.isPressed);
+        bool keyRight = keyboard != null && (keyboard.rightArrowKey.isPressed || keyboard.dKey.isPressed);
+        bool touchLeft = leftHoldButton != null && leftHoldButton.IsPressed;
+        bool touchRight = rightHoldButton != null && rightHoldButton.IsPressed;
+
+        // 键盘按下时让按钮呈现 Pressed 状态；松开时恢复。
+        ReflectKeyVisual(leftHoldButton, keyLeft, ref keyLeftVisual);
+        ReflectKeyVisual(rightHoldButton, keyRight, ref keyRightVisual);
 
         float direction = 0f;
-        if (keyboard.leftArrowKey.isPressed || keyboard.aKey.isPressed)
+        if (keyLeft || touchLeft)
         {
             direction -= 1f;
         }
 
-        if (keyboard.rightArrowKey.isPressed || keyboard.dKey.isPressed)
+        if (keyRight || touchRight)
         {
             direction += 1f;
         }
@@ -62,6 +82,74 @@ public sealed class ScenePanner : MonoBehaviour
         position.x = Mathf.SmoothDamp(position.x, targetX, ref dampVelocity, smoothTime);
         position.x = Clamp(position.x);
         transform.position = position;
+    }
+
+    private void OnDisable()
+    {
+        // 组件被停用时恢复按钮视觉，避免按钮卡在 Pressed 状态。
+        if (keyLeftVisual)
+        {
+            ReflectKeyVisual(leftHoldButton, false, ref keyLeftVisual);
+        }
+
+        if (keyRightVisual)
+        {
+            ReflectKeyVisual(rightHoldButton, false, ref keyRightVisual);
+        }
+    }
+
+    /// <summary>
+    /// 直接调用 Button 的指针回调，复用其 Pressed 颜色/贴图过渡（比 ExecuteEvents 精确，
+    /// 不会误触发同一物体上 HoldButton 的按下逻辑）。
+    /// </summary>
+    private void ReflectKeyVisual(HoldButton holdButton, bool pressed, ref bool current)
+    {
+        if (holdButton == null || pressed == current)
+        {
+            return;
+        }
+
+        Button button = holdButton.Button;
+        if (button == null)
+        {
+            return;
+        }
+
+        syntheticPointer ??= new PointerEventData(EventSystem.current)
+        {
+            button = PointerEventData.InputButton.Left
+        };
+
+        if (pressed)
+        {
+            button.OnPointerDown(syntheticPointer);
+        }
+        else
+        {
+            button.OnPointerUp(syntheticPointer);
+        }
+
+        current = pressed;
+    }
+
+    // 始终按物体名查找 LeftButton/RightButton；按钮被删除重建后下一帧自动恢复。
+    private void ResolveButtons()
+    {
+        if (leftHoldButton == null || rightHoldButton == null)
+        {
+            HoldButton[] all = FindObjectsByType<HoldButton>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (HoldButton hold in all)
+            {
+                if (leftHoldButton == null && hold.gameObject.name == LeftButtonName)
+                {
+                    leftHoldButton = hold;
+                }
+                else if (rightHoldButton == null && hold.gameObject.name == RightButtonName)
+                {
+                    rightHoldButton = hold;
+                }
+            }
+        }
     }
 
     private void RecalculateBounds()
