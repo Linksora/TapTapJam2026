@@ -117,9 +117,19 @@ public sealed class StoryManager : MonoBehaviour
         if (dialogue.HasOptions)
         {
             pendingNextTarget = null;
-            dialogueBox.Show(dialogue.Speaker, dialogue.Text, portrait,
-                (dialogue.Option1Text, () => Goto(dialogue.Option1Target)),
-                (dialogue.Option2Text, () => Goto(dialogue.Option2Target)));
+
+            // 只收集填了文案的选项，避免空选项渲染成空白按钮。
+            var options = new System.Collections.Generic.List<(string text, System.Action onClick)>(2);
+            if (!string.IsNullOrEmpty(dialogue.Option1Text))
+            {
+                options.Add((dialogue.Option1Text, () => Goto(dialogue.Option1Target)));
+            }
+            if (!string.IsNullOrEmpty(dialogue.Option2Text))
+            {
+                options.Add((dialogue.Option2Text, () => Goto(dialogue.Option2Target)));
+            }
+
+            dialogueBox.Show(dialogue.Speaker, dialogue.Text, portrait, options.ToArray());
         }
         else
         {

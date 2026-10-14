@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -21,6 +22,8 @@ public sealed class DialogueBoxView : MonoBehaviour
 
     private void Awake()
     {
+        ResolveReferences();
+
         Font chineseFont = Font.CreateDynamicFontFromOSFont(
             new[] { "PingFang SC", "Microsoft YaHei", "SimHei", "Arial" }, 32);
         if (chineseFont != null)
@@ -54,11 +57,7 @@ public sealed class DialogueBoxView : MonoBehaviour
             }
         }
 
-        // 选项按钮共用同一个父容器，由 SetOptionCount 统一开关，不依赖场景里的默认状态。
-        if (count > 0 && optionButtons[0] != null)
-        {
-            optionsRoot = optionButtons[0].transform.parent.gameObject;
-        }
+        // 选项容器已在 ResolveReferences 中确定（优先按名字 Options，兜底取按钮父节点）。
 
         SetOptionCount(0);
     }
@@ -164,6 +163,80 @@ public sealed class DialogueBoxView : MonoBehaviour
                 optionButtons[i].gameObject.SetActive(i < count);
             }
         }
+    }
+
+    /// <summary>
+    /// 引用兜底：用户在编辑器里重排 UI 可能让 Inspector 序列化引用掉线（None）。
+    /// 先信任 Inspector 引用；缺失时按约定名字 Options/OptionButton1/OptionButton2 递归查找
+    /// （按层级名字，与坐标无关；inactive 子节点也能找到）。
+    /// </summary>
+    private void ResolveReferences()
+    {
+        if (optionsRoot == null)
+        {
+            Transform found = FindChildRecursive(transform, "Options");
+            if (found != null)
+            {
+                optionsRoot = found.gameObject;
+            }
+        }
+
+        bool missing = optionButtons == null || optionButtons.Length == 0;
+        if (!missing)
+        {
+            foreach (Button button in optionButtons)
+            {
+                if (button == null)
+                {
+                    missing = true;
+                    break;
+                }
+            }
+        }
+
+        if (missing)
+        {
+            var buttons = new List<Button>(2);
+            foreach (string childName in new[] { "OptionButton1", "OptionButton2" })
+            {
+                Transform found = FindChildRecursive(transform, childName);
+                Button button = found != null ? found.GetComponent<Button>() : null;
+                if (button != null)
+                {
+                    buttons.Add(button);
+                }
+            }
+
+            if (buttons.Count > 0)
+            {
+                optionButtons = buttons.ToArray();
+            }
+        }
+
+        if (optionsRoot == null && optionButtons != null && optionButtons.Length > 0 && optionButtons[0] != null)
+        {
+            optionsRoot = optionButtons[0].transform.parent.gameObject;
+        }
+    }
+
+    private static Transform FindChildRecursive(Transform root, string childName)
+    {
+        for (int i = 0; i < root.childCount; i++)
+        {
+            Transform child = root.GetChild(i);
+            if (child.name == childName)
+            {
+                return child;
+            }
+
+            Transform deeper = FindChildRecursive(child, childName);
+            if (deeper != null)
+            {
+                return deeper;
+            }
+        }
+
+        return null;
     }
 
     private void HandleOption(int index)
