@@ -71,12 +71,21 @@ public static class NotebookPanelBuilder
             return;
         }
 
-        if (FindInScene(scene, "NotebookCanvas") != null)
+        GameObject canvasObject = FindInScene(scene, "NotebookCanvas");
+        if (canvasObject != null)
         {
+            // 已存在时不重建，只补齐新增部件（描述文本框、射线穿透用 CanvasGroup），保留用户手动调整过的布局。
+            GameObject existingPanel = FindRecursive(canvasObject.transform, "NotebookPanel");
+            if (existingPanel != null)
+            {
+                EnsureDescriptionText(existingPanel.transform, scene);
+                EnsureCanvasGroup(existingPanel, scene);
+            }
+
             return;
         }
 
-        GameObject canvasObject = new("NotebookCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+        canvasObject = new GameObject("NotebookCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
         SceneManager.MoveGameObjectToScene(canvasObject, scene);
         Canvas canvas = canvasObject.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -92,12 +101,17 @@ public static class NotebookPanelBuilder
         GameObject panel = CreateUIObject("NotebookPanel", canvasObject.transform);
         Stretch(panel.GetComponent<RectTransform>(), Vector2.zero, Vector2.zero);
 
+        // CanvasGroup：收起时整块放行射线，避免全屏底图挡住 world 搜证与对话框点击。
+        panel.AddComponent<CanvasGroup>();
+
         // 笔记本整图（256x144 美术，铺满 1280x720 即放大 5 倍，比例一致）
         GameObject notebookImageObject = CreateUIObject("NotebookImage", panel.transform);
         Stretch(notebookImageObject.GetComponent<RectTransform>(), Vector2.zero, Vector2.zero);
         Image notebookImage = notebookImageObject.AddComponent<Image>();
         notebookImage.sprite = LoadSingleSprite(ArtDir + "笔记本.png");
-        notebookImage.raycastTarget = true;
+        // 底图铺满全屏但只是美术：不参与射线，否则透明区域会整块挡住下面的对话框和搜证点击；
+        // 需要点击的地方由各自的 HitArea / 物品栏负责。
+        notebookImage.raycastTarget = false;
 
         // 2) 收起拉片：随滑动层移动，热区在书脊处（美术 bbox 765,320 ~ 920,415）
         CreateTabButton(panel.transform, "CloseNotebookButton",
@@ -109,12 +123,65 @@ public static class NotebookPanelBuilder
             "笔记本打开按钮", "笔记本打开按钮_选中",
             new Vector2(615f, -12.5f), new Vector2(50f, 95f));
 
-        // 4) 运行时控制脚本
+        // 4) 上半页线索描述文本框（位置只按纸页区域粗略摆放，可自行调整）
+        EnsureDescriptionText(panel.transform, scene);
+
+        // 5) 运行时控制脚本
         canvasObject.AddComponent<NotebookPanel>();
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
         Debug.Log("笔记本面板草稿已创建：NotebookCanvas（编辑态展开，运行时默认收起到屏幕右侧）。");
+    }
+
+    /// <summary>滑动层上必须有 CanvasGroup，运行时 NotebookPanel 用它切换整块的射线拦截/穿透。</summary>
+    private static void EnsureCanvasGroup(GameObject panel, Scene scene)
+    {
+        if (panel.GetComponent<CanvasGroup>() != null)
+        {
+            return;
+        }
+
+        panel.AddComponent<CanvasGroup>();
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        Debug.Log("已在 NotebookPanel 上补建 CanvasGroup。");
+    }
+
+    /// <summary>
+    /// 上半页描述文本框：点物品栏物品时由 NotebookPanel 写入“物品名+描述”。
+    /// 纸页米色区域约在屏幕 x 950~1230（256x144 底图放大 5 倍），底部让开物品栏。
+    /// </summary>
+    private static void EnsureDescriptionText(Transform panel, Scene scene)
+    {
+        if (FindRecursive(panel, "ClueDescriptionText") != null)
+        {
+            return;
+        }
+
+        GameObject textObject = CreateUIObject("ClueDescriptionText", panel);
+        RectTransform rect = textObject.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = new Vector2(450f, 50f);
+        rect.sizeDelta = new Vector2(260f, 500f);
+
+        Text text = textObject.AddComponent<Text>();
+        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf")
+                    ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+        text.fontSize = 24;
+        text.alignment = TextAnchor.UpperLeft;
+        text.horizontalOverflow = HorizontalWrapMode.Wrap;
+        text.verticalOverflow = VerticalWrapMode.Truncate;
+        text.lineSpacing = 1.1f;
+        text.color = new Color(0.18f, 0.13f, 0.07f);
+        text.raycastTarget = false; // 纯展示，不挡场景和物品栏点击
+        text.text = "点击物品查看描述。";
+
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        Debug.Log("已在笔记本上半页补建 ClueDescriptionText。");
     }
 
     private static void CreateTabButton(Transform parent, string buttonName, string normalArt, string selectedArt,

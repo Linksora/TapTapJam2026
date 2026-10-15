@@ -58,11 +58,14 @@ public static class SampleSceneDemoInstaller
         Canvas canvas = canvasObject.GetComponent<Canvas>();
         ConfigureCanvas(canvasObject);
         DialogueUI dialogueUI = ConfigureDialogue(canvas.transform, dialogueFrame);
+        ClueDetailPanel clueDetailPanel = ConfigureClueDetailPanel(canvas.transform);
 
         ItemData appleData = AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Generated/Demo01/AppleData.asset");
         ItemData yarnData = AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Generated/Demo01/YarnData.asset");
         Sprite appleSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Generated/Demo01/Apple.png");
         Sprite yarnSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Generated/Demo01/Yarn.png");
+        SetItemDescription(appleData, "一个普普通通的红苹果。看起来很新鲜，但小毛现在似乎没有胃口。");
+        SetItemDescription(yarnData, "小毛最喜欢的毛线团。线头有被反复玩弄留下的轻微毛边。");
 
         GameObject systems = FindInScene(scene, MarkerName);
         if (systems == null) systems = new GameObject(MarkerName);
@@ -80,7 +83,7 @@ public static class SampleSceneDemoInstaller
         GetOrAdd<BoxCollider2D>(player);
 
         RectTransform dragLayer = CreateOrGetDragLayer(canvas.transform);
-        InventorySlot[] slots = CreateOrGetInventory(canvas, dragLayer, reaction);
+        InventorySlot[] slots = CreateOrGetInventory(canvas, dragLayer, reaction, clueDetailPanel);
         SetReferenceArray(inventory, "slots", slots);
 
         ConfigureWorldItem(apple, appleData, appleSprite, inventory);
@@ -151,7 +154,8 @@ public static class SampleSceneDemoInstaller
         return rect;
     }
 
-    private static InventorySlot[] CreateOrGetInventory(Canvas canvas, RectTransform dragLayer, PlayerReaction reaction)
+    private static InventorySlot[] CreateOrGetInventory(Canvas canvas, RectTransform dragLayer,
+        PlayerReaction reaction, ClueDetailPanel clueDetailPanel)
     {
         GameObject panel = FindChild(canvas.transform, "InventoryPanel");
         if (panel == null) panel = CreateUIObject("InventoryPanel", canvas.transform);
@@ -201,6 +205,7 @@ public static class SampleSceneDemoInstaller
             SetReference(draggable, "rootCanvas", canvas);
             SetReference(draggable, "dragLayer", dragLayer);
             SetReference(draggable, "selectionReaction", reaction);
+            SetReference(draggable, "clueDetailPanel", clueDetailPanel);
 
             InventorySlot slot = slotObject.GetComponent<InventorySlot>();
             if (slot == null) slot = slotObject.AddComponent<InventorySlot>();
@@ -212,6 +217,86 @@ public static class SampleSceneDemoInstaller
 
         dragLayer.SetAsLastSibling();
         return slots;
+    }
+
+    private static ClueDetailPanel ConfigureClueDetailPanel(Transform canvas)
+    {
+        GameObject panel = FindChild(canvas, "ClueDetailPanel");
+        if (panel == null) panel = CreateUIObject("ClueDetailPanel", canvas);
+        RectTransform panelRect = panel.GetComponent<RectTransform>();
+        panelRect.anchorMin = panelRect.anchorMax = new Vector2(0.5f, 0.5f);
+        panelRect.pivot = new Vector2(0.5f, 0.5f);
+        panelRect.anchoredPosition = Vector2.zero;
+        panelRect.sizeDelta = new Vector2(620f, 340f);
+        Image background = panel.GetComponent<Image>();
+        if (background == null) background = panel.AddComponent<Image>();
+        background.color = new Color(0.035f, 0.11f, 0.08f, 0.98f);
+        background.raycastTarget = true;
+
+        GameObject iconObject = FindChild(panel.transform, "ClueIcon");
+        if (iconObject == null) iconObject = CreateUIObject("ClueIcon", panel.transform);
+        RectTransform iconRect = iconObject.GetComponent<RectTransform>();
+        iconRect.anchorMin = iconRect.anchorMax = new Vector2(0f, 0.5f);
+        iconRect.pivot = new Vector2(0f, 0.5f);
+        iconRect.anchoredPosition = new Vector2(34f, 0f);
+        iconRect.sizeDelta = new Vector2(180f, 180f);
+        Image icon = iconObject.GetComponent<Image>();
+        if (icon == null) icon = iconObject.AddComponent<Image>();
+        icon.preserveAspect = true;
+        icon.raycastTarget = false;
+
+        Text nameText = CreateOrGetText(panel.transform, "ClueName", new Vector2(245f, 230f),
+            new Vector2(330f, 60f), 34, TextAnchor.MiddleLeft);
+        Text descriptionText = CreateOrGetText(panel.transform, "ClueDescription", new Vector2(245f, 72f),
+            new Vector2(330f, 190f), 25, TextAnchor.UpperLeft);
+        descriptionText.horizontalOverflow = HorizontalWrapMode.Wrap;
+        descriptionText.verticalOverflow = VerticalWrapMode.Truncate;
+
+        GameObject closeObject = FindChild(panel.transform, "CloseButton");
+        if (closeObject == null) closeObject = CreateUIObject("CloseButton", panel.transform);
+        RectTransform closeRect = closeObject.GetComponent<RectTransform>();
+        closeRect.anchorMin = closeRect.anchorMax = new Vector2(1f, 1f);
+        closeRect.pivot = new Vector2(1f, 1f);
+        closeRect.anchoredPosition = new Vector2(-16f, -16f);
+        closeRect.sizeDelta = new Vector2(56f, 48f);
+        Image closeImage = closeObject.GetComponent<Image>();
+        if (closeImage == null) closeImage = closeObject.AddComponent<Image>();
+        closeImage.color = new Color(0.3f, 0.39f, 0.32f, 1f);
+        Button closeButton = closeObject.GetComponent<Button>();
+        if (closeButton == null) closeButton = closeObject.AddComponent<Button>();
+        Text closeText = CreateOrGetText(closeObject.transform, "Label", Vector2.zero,
+            new Vector2(56f, 48f), 28, TextAnchor.MiddleCenter);
+        closeText.text = "×";
+
+        ClueDetailPanel detail = panel.GetComponent<ClueDetailPanel>();
+        if (detail == null) detail = panel.AddComponent<ClueDetailPanel>();
+        SetReference(detail, "panelRoot", panel);
+        SetReference(detail, "iconImage", icon);
+        SetReference(detail, "itemNameText", nameText);
+        SetReference(detail, "descriptionText", descriptionText);
+        SetReference(detail, "closeButton", closeButton);
+        panel.SetActive(false);
+        return detail;
+    }
+
+    private static Text CreateOrGetText(Transform parent, string name, Vector2 anchoredPosition,
+        Vector2 size, int fontSize, TextAnchor alignment)
+    {
+        GameObject gameObject = FindChild(parent, name);
+        if (gameObject == null) gameObject = CreateUIObject(name, parent);
+        RectTransform rect = gameObject.GetComponent<RectTransform>();
+        rect.anchorMin = rect.anchorMax = new Vector2(0f, 0f);
+        rect.pivot = new Vector2(0f, 0f);
+        rect.anchoredPosition = anchoredPosition;
+        rect.sizeDelta = size;
+        Text text = gameObject.GetComponent<Text>();
+        if (text == null) text = gameObject.AddComponent<Text>();
+        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        text.fontSize = fontSize;
+        text.alignment = alignment;
+        text.color = new Color(0.98f, 0.94f, 0.82f);
+        text.raycastTarget = false;
+        return text;
     }
 
     private static void ConfigureWorldItem(GameObject gameObject, ItemData data, Sprite sprite, InventoryManager inventory)
@@ -237,6 +322,7 @@ public static class SampleSceneDemoInstaller
         if (!scene.IsValid() || !scene.isLoaded) return false;
         return FindInScene(scene, MarkerName) != null &&
                FindInScene(scene, "InventoryPanel") != null &&
+               FindInScene(scene, "ClueDetailPanel")?.GetComponent<ClueDetailPanel>() != null &&
                FindInScene(scene, "可选物品1.Apple")?.GetComponent<WorldItem>() != null;
     }
 
@@ -303,6 +389,19 @@ public static class SampleSceneDemoInstaller
         for (int i = 0; i < values.Length; i++)
             property.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
         serialized.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static void SetItemDescription(ItemData item, string description)
+    {
+        if (item == null) return;
+        SerializedObject serialized = new(item);
+        SerializedProperty property = serialized.FindProperty("description");
+        if (property != null && string.IsNullOrWhiteSpace(property.stringValue))
+        {
+            property.stringValue = description;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(item);
+        }
     }
 }
 #endif

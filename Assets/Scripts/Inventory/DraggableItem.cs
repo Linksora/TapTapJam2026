@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -8,9 +9,13 @@ public sealed class DraggableItem : MonoBehaviour, IBeginDragHandler, IDragHandl
     [SerializeField] private Canvas rootCanvas;
     [SerializeField] private RectTransform dragLayer;
     [SerializeField] private PlayerReaction selectionReaction;
+    [SerializeField] private ClueDetailPanel clueDetailPanel;
     private ItemData item;
     private GameObject dragIconObject;
     private RectTransform dragIconRect;
+
+    /// <summary>单击物品图标时触发（笔记本描述框等订阅），拖拽不会触发。</summary>
+    public event Action<ItemData> Clicked;
 
     public void SetItem(ItemData value)
     {
@@ -19,10 +24,12 @@ public sealed class DraggableItem : MonoBehaviour, IBeginDragHandler, IDragHandl
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        // 完成拖拽后 EventSystem 不会触发点击，因此这里仅处理真正的单击选择。
+        // 完成拖拽后 EventSystem 不会触发点击，因此这里仅处理真正的单击查看描述。
         if (item != null && eventData.button == PointerEventData.InputButton.Left)
         {
+            Clicked?.Invoke(item);
             selectionReaction?.ReactToSelectedItem(item);
+            clueDetailPanel?.Show(item);
         }
     }
 
