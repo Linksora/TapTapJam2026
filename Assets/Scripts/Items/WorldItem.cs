@@ -8,6 +8,11 @@ public sealed class WorldItem : MonoBehaviour, IPointerClickHandler
     [SerializeField] private InventoryManager inventoryManager;
     private bool pickedUp;
 
+    private void Awake()
+    {
+        inventoryManager ??= FindFirstObjectByType<InventoryManager>(FindObjectsInactive.Include);
+    }
+
     public void OnPointerClick(PointerEventData eventData)
     {
         if (pickedUp || itemData == null || inventoryManager == null)

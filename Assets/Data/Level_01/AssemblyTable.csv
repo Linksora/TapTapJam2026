@@ -1,3 +1,4 @@
 QuestionID,StatementText,Options,CorrectOption,SuccessDialogueID,SuccessClueID,WrongDialogueID,WrongPortraitPath,HesitantPortraitPath,TargetClueID
-Q_01,凶手在现场遗留的凶器是{0}。,水果刀|毛线团|苹果,0,D_105,C_Knife_0,D_105_W,小毛,小毛,
-Q_02,你说你没去过现场，那这把刻着 M 的水果刀怎么解释？,,,D_End,,D_Q02_W,小毛,小毛,C_Knife_1
+Q_Store_pre_01,录像里松鼠店员额外递给小守宫的那杯饮料是{0}。,热豆奶|冰可乐|矿泉水,0,D_304,C_SoyMilk,D_306,小毛,小毛,
+Q_Store_01,小守宫最近只在人少时进店，昨天看到柜台后不是松鼠店员更是转身就跑。这些迹象最可能说明{0}。,她只敢信任松鼠店员|她偷了店里的东西|她讨厌便利店,0,D_503,C_Clerk,D_505,小毛,小毛,
+Q_Store_Face,你昨天一进店，看见柜台后不是松鼠店员，转身就跑了——你在害怕的到底是什么？,,,D_504,,D_506,小毛,守宫妹妹,C_Clerk
