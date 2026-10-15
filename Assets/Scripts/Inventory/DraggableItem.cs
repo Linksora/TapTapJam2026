@@ -8,6 +8,7 @@ public sealed class DraggableItem : MonoBehaviour, IBeginDragHandler, IDragHandl
     [SerializeField] private Canvas rootCanvas;
     [SerializeField] private RectTransform dragLayer;
     [SerializeField] private PlayerReaction selectionReaction;
+    [SerializeField] private ClueDetailPanel clueDetailPanel;
     private ItemData item;
     private GameObject dragIconObject;
     private RectTransform dragIconRect;
@@ -23,6 +24,7 @@ public sealed class DraggableItem : MonoBehaviour, IBeginDragHandler, IDragHandl
         if (item != null && eventData.button == PointerEventData.InputButton.Left)
         {
             selectionReaction?.ReactToSelectedItem(item);
+            clueDetailPanel?.Show(item);
         }
     }
 

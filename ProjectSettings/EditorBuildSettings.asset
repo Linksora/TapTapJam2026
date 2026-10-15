@@ -6,6 +6,12 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Scenes/TitleScene.unity
+    guid: 58ac3799b9f1ea1408c3ace93576ef51
+  - enabled: 1
+    path: Assets/Scenes/Celia_TestScene.unity
+    guid: 268b371cff88042e09ce394b5e0bfd29
+  - enabled: 1
     path: Assets/Scenes/Demo01.unity
     guid: 536c3f7b13f3c5c44a38e0cd96eadea1
   - enabled: 1

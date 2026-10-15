@@ -15,3 +15,5 @@ MonoBehaviour:
   itemId: yarn
   itemName: "\u6BDB\u7EBF\u56E2"
   icon: {fileID: 2707044199824499068, guid: 7984f0d8f075ee446bc027478d6f1ee7, type: 3}
+  description: "\u5C0F\u6BDB\u6700\u559C\u6B22\u7684\u6BDB\u7EBF\u56E2\u3002\u7EBF\u5934\u6709\u88AB\u53CD\u590D\u73A9\u5F04\u7559\u4E0B\u7684\u8F7B\u5FAE\u6BDB\u8FB9\u3002"
+  nextClue: {fileID: 0}

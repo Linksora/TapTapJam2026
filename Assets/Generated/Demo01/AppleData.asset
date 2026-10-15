@@ -15,3 +15,5 @@ MonoBehaviour:
   itemId: apple
   itemName: "\u82F9\u679C"
   icon: {fileID: 7293598183456022363, guid: 723ccf4a4b2cdbc4ea1aba0426a0ac8c, type: 3}
+  description: "\u4E00\u4E2A\u666E\u666E\u901A\u901A\u7684\u7EA2\u82F9\u679C\u3002\u770B\u8D77\u6765\u5F88\u65B0\u9C9C\uFF0C\u4F46\u5C0F\u6BDB\u73B0\u5728\u4F3C\u4E4E\u6CA1\u6709\u80C3\u53E3\u3002"
+  nextClue: {fileID: 0}
