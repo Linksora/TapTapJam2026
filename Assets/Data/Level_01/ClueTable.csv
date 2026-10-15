@@ -1,5 +1,8 @@
 ClueID,Name,IconPath,Description,NextClueID
-C_Knife_0,沾血的水果刀,Icons/Knife_0,刀身上的血迹有被擦拭过的痕迹，刀柄上似乎还刻着什么。,C_Knife_1
-C_Knife_1,带刻痕的水果刀,Icons/Knife_1,刀柄上清晰地刻着字母 M，和小毛名字的首字母一模一样。,
-C_Yarn,红毛线团,Icons/Yarn,小毛最喜欢的红色毛线团，走到哪里都带着。,
-C_Apple,苹果,Icons/Apple,一个普普通通的红苹果。,
+C_SoyMilk,热豆奶,Icons/SoyMilk,松鼠趁小守宫低头数零钱时额外准备的热饮，“购买自动铅笔送饮料”只是她随口编的活动。,
+C_Pencil,自动铅笔,Icons/Pencil,小守宫开学时常买的文具，松鼠曾借“买笔送饮料”为由头送她热豆奶。,
+C_Footage,便利店监控录像,Icons/Footage,录像记录了小守宫从开学常来买午餐，到躲着人群、见到陌生店员立刻逃走的变化。,
+C_Clerk,陌生的值班店员,Icons/Clerk,昨天值班的并不是松鼠。小守宫进店发现店员不认识，立刻受惊一样离开了。,
+C_WarmSpot,冰柜侧面的暖处,Icons/WarmSpot,小守宫喜欢暖和：只喝热饮，还会故意坐在冰柜侧面有点温度的地方。,
+C_Cry,哭红的眼睛,Icons/Cry,松鼠昨天见到小守宫时，她像是刚哭过的样子。,
+C_Hamster,仓鼠,Icons/Hamster,小狗说该让她和仓鼠自己解决，小守宫却抽泣着否认：“不是仓鼠的事情……”,
