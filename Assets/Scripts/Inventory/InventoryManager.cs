@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public sealed class InventoryManager : MonoBehaviour
@@ -10,7 +11,26 @@ public sealed class InventoryManager : MonoBehaviour
 
     private void Awake()
     {
+        ResolveSlots();
         RefreshUI();
+    }
+
+    /// <summary>场景按约定名字搭建时 slots 序列化数组可能为空，运行时从 InventoryPanel 下兜底收集。</summary>
+    private void ResolveSlots()
+    {
+        if (slots != null && slots.Length > 0)
+        {
+            return;
+        }
+
+        Transform panel = FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+            .FirstOrDefault(t => t.name == "InventoryPanel");
+        if (panel != null)
+        {
+            slots = panel.GetComponentsInChildren<InventorySlot>(true)
+                .OrderBy(slot => slot.name)
+                .ToArray();
+        }
     }
 
     public bool AddItem(ItemData item)
