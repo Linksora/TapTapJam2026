@@ -17,6 +17,7 @@ public sealed class QuestionData : ScriptableObject
     [SerializeField] private string wrongPortraitPath;
     [SerializeField] private string hesitantPortraitPath;
     [SerializeField] private ItemData targetClue;
+    [SerializeField] private string characterId;
 
     public string QuestionId => questionId;
     public string Statement => statement;
@@ -28,6 +29,9 @@ public sealed class QuestionData : ScriptableObject
     public string WrongPortraitPath => wrongPortraitPath;
     public string HesitantPortraitPath => hesitantPortraitPath;
     public ItemData TargetClue => targetClue;
+
+    /// <summary>质询题限定对哪个角色使用（空=任意角色）。拼凑选填题不用。</summary>
+    public string CharacterId => characterId;
 
     public bool IsInterrogation => options == null || options.Count == 0;
 }

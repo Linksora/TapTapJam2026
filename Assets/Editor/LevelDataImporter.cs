@@ -119,6 +119,18 @@ public static class LevelDataImporter
             SetString(serialized, "option2Text", scriptTable.Get(i, "Option2_Text"));
             SetString(serialized, "option2Target", scriptTable.Get(i, "Option2_Target").Trim());
             SetString(serialized, "nextTarget", scriptTable.Get(i, "NextDialogueID").Trim());
+            SetString(serialized, "background", scriptTable.Get(i, "Background").Trim());
+
+            string searchRaw = scriptTable.Get(i, "SearchClueIDs").Trim();
+            string[] searchClueIds = string.IsNullOrEmpty(searchRaw)
+                ? System.Array.Empty<string>()
+                : searchRaw.Split('|', System.StringSplitOptions.RemoveEmptyEntries);
+            for (int s = 0; s < searchClueIds.Length; s++)
+            {
+                searchClueIds[s] = searchClueIds[s].Trim();
+            }
+
+            SetStringArray(serialized, "searchClueIds", searchClueIds);
             serialized.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(dialogue);
             dialogueOrder.Add(dialogue);
@@ -159,6 +171,7 @@ public static class LevelDataImporter
             SetString(serialized, "wrongPortraitPath", assemblyTable.Get(i, "WrongPortraitPath").Trim());
             SetString(serialized, "hesitantPortraitPath", assemblyTable.Get(i, "HesitantPortraitPath").Trim());
             SetObject(serialized, "targetClue", clueMap.GetValueOrDefault(assemblyTable.Get(i, "TargetClueID").Trim()));
+            SetString(serialized, "characterId", assemblyTable.Get(i, "CharacterID").Trim());
             serialized.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(question);
             questionOrder.Add(question);

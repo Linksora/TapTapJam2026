@@ -82,6 +82,52 @@ public sealed class LevelDatabase : ScriptableObject
         return string.IsNullOrEmpty(id) ? null : questionMap.GetValueOrDefault(id);
     }
 
+    /// <summary>
+    /// 质询命中：把某条证物拖到某角色身上时，找“该角色 + 目标证物完全匹配”的质询题。
+    /// 题目的 CharacterID 为空表示不限定角色。
+    /// </summary>
+    public QuestionData FindInterrogation(string characterId, ItemData clue)
+    {
+        if (clue == null)
+        {
+            return null;
+        }
+
+        foreach (QuestionData question in questions)
+        {
+            if (question == null || !question.IsInterrogation || question.TargetClue != clue)
+            {
+                continue;
+            }
+
+            if (string.IsNullOrEmpty(question.CharacterId) || question.CharacterId == characterId)
+            {
+                return question;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>该角色身上是否挂着任何质询题（拖错证物时给出该题的错误回流对话）。</summary>
+    public QuestionData FindInterrogationForCharacter(string characterId)
+    {
+        if (string.IsNullOrEmpty(characterId))
+        {
+            return null;
+        }
+
+        foreach (QuestionData question in questions)
+        {
+            if (question != null && question.IsInterrogation && question.CharacterId == characterId)
+            {
+                return question;
+            }
+        }
+
+        return null;
+    }
+
     public DialogueData FindEntryDialogue(ItemData clue)
     {
         if (clue == null)

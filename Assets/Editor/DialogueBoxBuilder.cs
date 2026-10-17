@@ -93,7 +93,7 @@ public static class DialogueBoxBuilder
         panel.raycastTarget = true;
 
         // 立绘位
-        GameObject portraitObject = CreateUIObject("Portrait", root.transform);
+        GameObject portraitObject = CreateUIObject("MainCharacter", root.transform);
         RectTransform portraitRect = portraitObject.GetComponent<RectTransform>();
         portraitRect.anchorMin = new Vector2(0f, 0f);
         portraitRect.anchorMax = new Vector2(0f, 0f);
@@ -104,6 +104,20 @@ public static class DialogueBoxBuilder
         portrait.color = new Color(0.15f, 0.2f, 0.18f, 1f);
         portrait.preserveAspect = true;
         portrait.raycastTarget = false;
+
+        GameObject characterObject = CreateUIObject("Character", root.transform);
+        RectTransform characterRect = characterObject.GetComponent<RectTransform>();
+        characterRect.anchorMin = characterRect.anchorMax = Vector2.zero;
+        characterRect.pivot = Vector2.zero;
+        characterRect.anchoredPosition = new Vector2(232f, 230f);
+        characterRect.sizeDelta = new Vector2(200f, 212f);
+        Image character = characterObject.AddComponent<Image>();
+        character.preserveAspect = true;
+        character.raycastTarget = false;
+        characterObject.SetActive(false);
+
+        Button left = CreateSwitchButton("LeftButton", "<", portraitObject.transform, 0f);
+        Button right = CreateSwitchButton("RightButton", ">", portraitObject.transform, 1f);
 
         // 说话人
         GameObject speakerObject = CreateUIObject("SpeakerText", root.transform);
@@ -134,77 +148,44 @@ public static class DialogueBoxBuilder
         contentText.horizontalOverflow = HorizontalWrapMode.Wrap;
         contentText.raycastTarget = false;
 
-        // 选项区：底部右侧横排两个按钮
-        GameObject optionsObject = CreateUIObject("Options", root.transform);
-        RectTransform optionsRect = optionsObject.GetComponent<RectTransform>();
-        optionsRect.anchorMin = new Vector2(0f, 0f);
-        optionsRect.anchorMax = new Vector2(1f, 0f);
-        optionsRect.pivot = new Vector2(0.5f, 0f);
-        optionsRect.anchoredPosition = Vector2.zero;
-        optionsRect.sizeDelta = new Vector2(0f, 60f);
-        HorizontalLayoutGroup layout = optionsObject.AddComponent<HorizontalLayoutGroup>();
-        layout.spacing = 16f;
-        layout.padding = new RectOffset(0, 24, 0, 0);
-        layout.childAlignment = TextAnchor.MiddleRight;
-        layout.childControlWidth = false;
-        layout.childControlHeight = false;
-        layout.childForceExpandWidth = false;
-        layout.childForceExpandHeight = false;
-
-        var buttons = new Button[2];
-        for (int i = 0; i < buttons.Length; i++)
-        {
-            buttons[i] = CreateOptionButton(optionsObject.transform, i + 1);
-        }
+        // 选项区：运行时由 DialogueBoxView 在对话框上方动态构建（数量不限、可滚动），
+        // 场景里不再预摆按钮，避免分叉两套布局。
 
         DialogueBoxView view = root.AddComponent<DialogueBoxView>();
         SerializedObject serialized = new(view);
-        serialized.FindProperty("portraitImage").objectReferenceValue = portrait;
+        serialized.FindProperty("mainCharacterImage").objectReferenceValue = portrait;
+        serialized.FindProperty("characterImage").objectReferenceValue = character;
+        serialized.FindProperty("leftButton").objectReferenceValue = left;
+        serialized.FindProperty("rightButton").objectReferenceValue = right;
         serialized.FindProperty("speakerText").objectReferenceValue = speakerText;
         serialized.FindProperty("contentText").objectReferenceValue = contentText;
-        SerializedProperty array = serialized.FindProperty("optionButtons");
-        array.arraySize = buttons.Length;
-        for (int i = 0; i < buttons.Length; i++)
-        {
-            array.GetArrayElementAtIndex(i).objectReferenceValue = buttons[i];
-        }
-
         serialized.ApplyModifiedPropertiesWithoutUndo();
         EditorUtility.SetDirty(view);
 
-        root.SetActive(false);
+        root.SetActive(true);
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
-        Debug.Log("DialogueBox 已创建在 Celia_TestScene 的 Canvas 下（默认隐藏，运行时由 DialogueBoxView.Show 显示）。");
+        Debug.Log("DialogueBox 已创建在 Celia_TestScene 的 Canvas 下，主角常驻，台词由 DialogueBoxView.Show 显示。");
     }
 
-    private static Button CreateOptionButton(Transform parent, int index)
+    private static Button CreateSwitchButton(string name, string label, Transform parent, float x)
     {
-        GameObject buttonObject = CreateUIObject($"OptionButton{index}", parent);
-        buttonObject.GetComponent<RectTransform>().sizeDelta = new Vector2(380f, 56f);
+        GameObject buttonObject = CreateUIObject(name, parent);
+        RectTransform rect = buttonObject.GetComponent<RectTransform>();
+        rect.anchorMin = rect.anchorMax = new Vector2(x, 0.5f);
+        rect.sizeDelta = new Vector2(40f, 40f);
         Image image = buttonObject.AddComponent<Image>();
-        image.color = new Color(0.22f, 0.31f, 0.26f, 1f);
-        image.raycastTarget = true;
         Button button = buttonObject.AddComponent<Button>();
-
-        ColorBlock colors = button.colors;
-        colors.highlightedColor = new Color(0.32f, 0.43f, 0.36f, 1f);
-        colors.pressedColor = new Color(0.16f, 0.23f, 0.19f, 1f);
-        button.colors = colors;
-
-        GameObject labelObject = CreateUIObject("Label", buttonObject.transform);
-        RectTransform labelRect = labelObject.GetComponent<RectTransform>();
-        Stretch(labelRect, new Vector2(10f, 6f), new Vector2(-10f, -6f));
-        Text label = labelObject.AddComponent<Text>();
-        label.text = $"选项{index}";
-        label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        label.fontSize = 26;
-        label.alignment = TextAnchor.MiddleCenter;
-        label.color = new Color(0.98f, 0.94f, 0.82f);
-        label.raycastTarget = false;
-
-        buttonObject.SetActive(false);
+        button.targetGraphic = image;
+        GameObject textObject = CreateUIObject("Label", buttonObject.transform);
+        Stretch(textObject.GetComponent<RectTransform>(), Vector2.zero, Vector2.zero);
+        Text text = textObject.AddComponent<Text>();
+        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        text.text = label;
+        text.alignment = TextAnchor.MiddleCenter;
+        text.color = Color.black;
+        text.raycastTarget = false;
         return button;
     }
 
