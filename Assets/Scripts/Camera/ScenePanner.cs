@@ -26,10 +26,15 @@ public sealed class ScenePanner : MonoBehaviour
     private float minX;
     private float maxX;
     private float dampVelocity;
+    private Bounds lastBackgroundBounds;
+    private float lastOrthographicSize;
+    private float lastAspect;
+    private float lastEdgePadding;
 
     private PointerEventData syntheticPointer;
     private bool keyLeftVisual;
     private bool keyRightVisual;
+    public bool NavigationMode { get; set; }
 
     private void Awake()
     {
@@ -49,11 +54,20 @@ public sealed class ScenePanner : MonoBehaviour
             return;
         }
 
-        RecalculateBounds();
+        RefreshBounds();
     }
 
     private void Update()
     {
+        if (background == null || targetCamera == null || !targetCamera.orthographic) return;
+        // Sprite 更换、背景移动/缩放、窗口比例和相机缩放都可能改变可移动范围。
+        if (background != null && (background.bounds != lastBackgroundBounds
+            || targetCamera.orthographicSize != lastOrthographicSize
+            || targetCamera.aspect != lastAspect || edgePadding != lastEdgePadding))
+            RefreshBounds();
+
+        if (NavigationMode) return;
+
         ResolveButtons();
 
         Keyboard keyboard = Keyboard.current;
@@ -152,13 +166,57 @@ public sealed class ScenePanner : MonoBehaviour
         }
     }
 
-    private void RecalculateBounds()
+    /// <summary>背景分组切换后，绑定新底图并立即更新可移动范围。</summary>
+    public void SetBackground(SpriteRenderer renderer, bool center = true)
     {
+        background = renderer;
+        if (targetCamera == null) targetCamera = GetComponent<Camera>();
+        enabled = background != null && targetCamera != null && targetCamera.orthographic;
+        if (!enabled) return;
+        if (center)
+        {
+            Vector3 position = transform.position;
+            position.x = background.bounds.center.x;
+            transform.position = position;
+        }
+        RefreshBounds();
+    }
+
+    public void FocusAt(float normalizedX)
+    {
+        if (background == null) return;
+        RefreshBounds();
+        Vector3 position = transform.position;
+        position.x = Clamp(Mathf.Lerp(background.bounds.min.x, background.bounds.max.x, Mathf.Clamp01(normalizedX)));
+        transform.position = position;
+        dampVelocity = 0;
+    }
+
+    public void PanInBackground(float direction)
+    {
+        if (background == null) return;
+        Vector3 position = transform.position;
+        position.x = Clamp(position.x + direction * moveSpeed * Time.unscaledDeltaTime);
+        transform.position = position;
+    }
+
+    public void RefreshBounds()
+    {
+        if (targetCamera == null) targetCamera = GetComponent<Camera>();
+        if (background == null || targetCamera == null || !targetCamera.orthographic) return;
         Bounds bounds = background.bounds;
         float halfViewWidth = targetCamera.orthographicSize * targetCamera.aspect;
-        float scrollRange = Mathf.Max(0f, bounds.extents.x - halfViewWidth - edgePadding);
+        float scrollRange = Mathf.Max(0f, bounds.extents.x - halfViewWidth - Mathf.Max(0f, edgePadding));
         minX = bounds.center.x - scrollRange;
         maxX = bounds.center.x + scrollRange;
+        lastBackgroundBounds = bounds;
+        lastOrthographicSize = targetCamera.orthographicSize;
+        lastAspect = targetCamera.aspect;
+        lastEdgePadding = edgePadding;
+        dampVelocity = 0f;
+        Vector3 position = transform.position;
+        position.x = Clamp(position.x);
+        transform.position = position;
     }
 
     private float Clamp(float x)

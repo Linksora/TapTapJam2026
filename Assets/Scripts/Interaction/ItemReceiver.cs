@@ -12,7 +12,7 @@ public sealed class ItemReceiver : MonoBehaviour
 
     public void ReceiveItem(ItemData item)
     {
-        if (item != null)
+        if (isActiveAndEnabled && item != null)
         {
             onItemReceived.Invoke(item);
         }

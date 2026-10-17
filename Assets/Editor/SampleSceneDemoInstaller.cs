@@ -127,7 +127,7 @@ public static class SampleSceneDemoInstaller
         Text text = textObject.GetComponent<Text>();
         if (text == null) text = textObject.AddComponent<Text>();
         text.text = "点击货架上的物品进行拾取";
-        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        text.font = GameFont.Primary;
         text.fontSize = 28;
         text.alignment = TextAnchor.MiddleLeft;
         text.color = new Color(0.98f, 0.94f, 0.82f);
@@ -291,7 +291,7 @@ public static class SampleSceneDemoInstaller
         rect.sizeDelta = size;
         Text text = gameObject.GetComponent<Text>();
         if (text == null) text = gameObject.AddComponent<Text>();
-        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        text.font = GameFont.Primary;
         text.fontSize = fontSize;
         text.alignment = alignment;
         text.color = new Color(0.98f, 0.94f, 0.82f);

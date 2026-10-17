@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 29ef04caf86b04509a75f2e5f9e13295, type: 3}
+  m_Name: Q_C3
+  m_EditorClassIdentifier: Assembly-CSharp::QuestionData
+  questionId: Q_C3
+  statement: "\u8D28\u8BE2 3/4\uFF5C\u51FA\u793A\u80FD\u8BF4\u660E\u201C\u7559\u5728\u6559\u5BA4\u6709\u4EC0\u4E48\u56F0\u96BE\u201D\u7684\u8BC1\u636E\u3002"
+  options: []
+  correctOption: -1
+  successTarget: D_C3_OK_01
+  successClue: {fileID: 0}
+  wrongTarget: D_C3_WRONG_DEFAULT
+  wrongPortraitPath: "\u5C0F\u6BDB"
+  hesitantPortraitPath: "\u4ED3\u9F20"
+  targetClue: {fileID: 11400000, guid: ed690a60ec29647eaaba6402aeb61a39, type: 2}
+  characterId: "\u4ED3\u9F20"
+  wrongClueTargets:
+  - ST06:D_C3_WRONG_ST06
+  - ST07:D_C3_WRONG_ST07

@@ -82,6 +82,8 @@ public static class NotebookPanelBuilder
                 EnsureCanvasGroup(existingPanel, scene);
             }
 
+            EnsureInventoryPagination(scene);
+
             return;
         }
 
@@ -128,10 +130,28 @@ public static class NotebookPanelBuilder
 
         // 5) 运行时控制脚本
         canvasObject.AddComponent<NotebookPanel>();
+        EnsureInventoryPagination(scene);
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
         Debug.Log("笔记本面板草稿已创建：NotebookCanvas（编辑态展开，运行时默认收起到屏幕右侧）。");
+    }
+
+    private static void EnsureInventoryPagination(Scene scene)
+    {
+        bool changed = false;
+        foreach (GameObject root in scene.GetRootGameObjects())
+        {
+            foreach (InventoryManager inventory in root.GetComponentsInChildren<InventoryManager>(true))
+            {
+                if (!inventory.EnsurePageControls()) continue;
+                EditorUtility.SetDirty(inventory);
+                changed = true;
+            }
+        }
+        if (!changed) return;
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
     }
 
     /// <summary>滑动层上必须有 CanvasGroup，运行时 NotebookPanel 用它切换整块的射线拦截/穿透。</summary>
@@ -168,8 +188,7 @@ public static class NotebookPanelBuilder
         rect.sizeDelta = new Vector2(260f, 500f);
 
         Text text = textObject.AddComponent<Text>();
-        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf")
-                    ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+        text.font = GameFont.Primary;
         text.fontSize = 24;
         text.alignment = TextAnchor.UpperLeft;
         text.horizontalOverflow = HorizontalWrapMode.Wrap;

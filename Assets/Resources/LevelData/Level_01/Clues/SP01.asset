@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ccac49dc7af7064e81f5767fea3bfac, type: 3}
+  m_Name: SP01
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  itemId: SP01
+  itemName: "\u6628\u5929\u7684\u65B0\u5E97\u5458"
+  icon: {fileID: 8093027393006440214, guid: 1279c97cbbb444be4859f68476a41794, type: 3}
+  description: "\u6628\u5929\u8BE5\u65F6\u6BB5\u503C\u73ED\u7684\u662F\u65B0\u5E97\u5458\uFF0C\u4E0D\u662F\u677E\u9F20\u3002"
+  nextClue: {fileID: 0}

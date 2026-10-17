@@ -11,11 +11,10 @@ public sealed class DialogueUI : MonoBehaviour
 
     private void Awake()
     {
-        // 使用系统动态字体，保证 Windows 编辑器中中文可以正常显示。
+        // 使用项目统一字体。
         if (dialogueText != null)
         {
-            Font chineseFont = Font.CreateDynamicFontFromOSFont(
-                new[] { "Microsoft YaHei", "SimHei", "Arial" }, 32);
+            Font chineseFont = GameFont.Primary;
             if (chineseFont != null)
             {
                 dialogueText.font = chineseFont;

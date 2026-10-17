@@ -14,8 +14,7 @@ public sealed class TitleMenu : MonoBehaviour
 
     private void Awake()
     {
-        Font chineseFont = Font.CreateDynamicFontFromOSFont(
-            new[] { "PingFang SC", "Microsoft YaHei", "SimHei", "Arial" }, 32);
+        Font chineseFont = GameFont.Primary;
         if (chineseFont != null)
         {
             foreach (Text text in GetComponentsInChildren<Text>(true))

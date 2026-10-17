@@ -1,4 +1,5 @@
-QuestionID,StatementText,Options,CorrectOption,SuccessDialogueID,SuccessClueID,WrongDialogueID,WrongPortraitPath,HesitantPortraitPath,TargetClueID
-Q_Store_pre_01,录像里松鼠店员额外递给小守宫的那杯饮料是{0}。,热豆奶|冰可乐|矿泉水,0,D_304,C_SoyMilk,D_306,小毛,小毛,
-Q_Store_01,小守宫最近只在人少时进店，昨天看到柜台后不是松鼠店员更是转身就跑。这些迹象最可能说明{0}。,她只敢信任松鼠店员|她偷了店里的东西|她讨厌便利店,0,D_503,C_Clerk,D_505,小毛,小毛,
-Q_Store_Face,你昨天一进店，看见柜台后不是松鼠店员，转身就跑了——你在害怕的到底是什么？,,,D_504,,D_506,小毛,守宫妹妹,C_Clerk
+QuestionID,StatementText,Options,CorrectOption,SuccessDialogueID,SuccessClueID,WrongDialogueID,WrongPortraitPath,HesitantPortraitPath,TargetClueID,CharacterID,WrongClueTargets
+Q_C1,质询 1/4｜出示能说明“停留位置与商品选择不同”的证据。,,,D_C1_OK_01,,D_C1_WRONG_DEFAULT,小毛,松鼠店员,ST02,松鼠店员,ST01:D_C1_WRONG_ST01|SP03:D_C1_WRONG_SP03
+Q_C2,质询 2/4｜出示能说明“她在主动解决环境不适”的证据。,,,D_C2_OK_01,,D_C2_WRONG_DEFAULT,小毛,仓鼠,ST05,仓鼠,ST04:D_C2_WRONG_ST04|ST03:D_C2_WRONG_ST03
+Q_C3,质询 3/4｜出示能说明“留在教室有什么困难”的证据。,,,D_C3_OK_01,,D_C3_WRONG_DEFAULT,小毛,仓鼠,ST04,仓鼠,ST06:D_C3_WRONG_ST06|ST07:D_C3_WRONG_ST07
+Q_C4,质询 4/4｜出示她曾试图解释，却没有说完的证据。,,,D_C4_OK_01,,D_C4_WRONG_DEFAULT,小毛,守宫妹妹,ST03,守宫妹妹,ST07:D_C4_WRONG_ST07|SP02:D_C4_WRONG_SP02

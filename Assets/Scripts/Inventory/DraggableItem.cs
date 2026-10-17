@@ -17,8 +17,19 @@ public sealed class DraggableItem : MonoBehaviour, IBeginDragHandler, IDragHandl
     /// <summary>单击物品图标时触发（笔记本描述框等订阅），拖拽不会触发。</summary>
     public event Action<ItemData> Clicked;
 
+    public void ConfigureNotebook(Canvas canvas, RectTransform layer)
+    {
+        rootCanvas = canvas;
+        dragLayer = layer;
+        // 笔记本负责线索详情，避免同时弹出旧版物品反应/详情面板。
+        selectionReaction = null;
+        clueDetailPanel = null;
+    }
+
     public void SetItem(ItemData value)
     {
+        // 翻页复用格子时，终止上一件证物尚未完成的拖拽。
+        if (item != value) CancelDrag();
         item = value;
     }
 
@@ -35,29 +46,72 @@ public sealed class DraggableItem : MonoBehaviour, IBeginDragHandler, IDragHandl
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        if (item == null || item.Icon == null || rootCanvas == null || dragLayer == null)
+        if (eventData.button != PointerEventData.InputButton.Left || item == null || rootCanvas == null || dragLayer == null)
         {
             return;
         }
 
-        dragIconObject = new GameObject("DragIcon", typeof(RectTransform), typeof(CanvasGroup), typeof(Image));
+        dragIconObject = item.Icon != null ? CreateIconChip() : CreateTextChip(item.ItemName);
         dragIconObject.transform.SetParent(dragLayer, false);
         dragIconObject.transform.SetAsLastSibling();
 
         dragIconRect = dragIconObject.GetComponent<RectTransform>();
-        dragIconRect.sizeDelta = new Vector2(96f, 96f);
 
-        Image image = dragIconObject.GetComponent<Image>();
+        UpdateDragPosition(eventData);
+    }
+
+    private GameObject CreateIconChip()
+    {
+        var chip = new GameObject("DragIcon", typeof(RectTransform), typeof(CanvasGroup), typeof(Image));
+        chip.GetComponent<RectTransform>().sizeDelta = new Vector2(96f, 96f);
+
+        Image image = chip.GetComponent<Image>();
         image.sprite = item.Icon;
         image.preserveAspect = true;
         image.raycastTarget = false;
 
-        CanvasGroup canvasGroup = dragIconObject.GetComponent<CanvasGroup>();
+        ConfigureChipCanvasGroup(chip);
+        return chip;
+    }
+
+    /// <summary>没有图标资源的证物也必须能拖去面质：用带物品名的深色小芯片占位。</summary>
+    private GameObject CreateTextChip(string label)
+    {
+        var chip = new GameObject("DragIcon", typeof(RectTransform), typeof(CanvasGroup), typeof(Image));
+        chip.GetComponent<RectTransform>().sizeDelta = new Vector2(180f, 56f);
+
+        Image background = chip.GetComponent<Image>();
+        background.color = new Color(0.07f, 0.09f, 0.12f, 0.85f);
+        background.raycastTarget = false;
+
+        var labelObject = new GameObject("Label", typeof(RectTransform), typeof(Text));
+        labelObject.transform.SetParent(chip.transform, false);
+        RectTransform labelRect = labelObject.GetComponent<RectTransform>();
+        labelRect.anchorMin = Vector2.zero;
+        labelRect.anchorMax = Vector2.one;
+        labelRect.offsetMin = new Vector2(8f, 4f);
+        labelRect.offsetMax = new Vector2(-8f, -4f);
+
+        Text text = labelObject.GetComponent<Text>();
+        text.text = label;
+        text.alignment = TextAnchor.MiddleCenter;
+        text.horizontalOverflow = HorizontalWrapMode.Wrap;
+        text.verticalOverflow = VerticalWrapMode.Truncate;
+        text.color = Color.white;
+        text.fontSize = 22;
+        text.raycastTarget = false;
+        text.font = GameFont.Primary;
+
+        ConfigureChipCanvasGroup(chip);
+        return chip;
+    }
+
+    private static void ConfigureChipCanvasGroup(GameObject chip)
+    {
+        CanvasGroup canvasGroup = chip.GetComponent<CanvasGroup>();
         canvasGroup.blocksRaycasts = false;
         canvasGroup.interactable = false;
         canvasGroup.alpha = 0.9f;
-
-        UpdateDragPosition(eventData);
     }
 
     public void OnDrag(PointerEventData eventData)
@@ -85,10 +139,11 @@ public sealed class DraggableItem : MonoBehaviour, IBeginDragHandler, IDragHandl
         var results = new List<RaycastResult>();
         EventSystem.current.RaycastAll(eventData, results);
 
-        foreach (RaycastResult result in results)
+        // 只处理最上层命中的对象，不能穿过笔记本/设置面板向下方角色出示。
+        if (results.Count > 0)
         {
-            ItemReceiver receiver = result.gameObject.GetComponentInParent<ItemReceiver>();
-            if (receiver != null)
+            ItemReceiver receiver = results[0].gameObject.GetComponentInParent<ItemReceiver>();
+            if (receiver != null && receiver.isActiveAndEnabled)
             {
                 receiver.ReceiveItem(item);
                 return;
@@ -117,11 +172,15 @@ public sealed class DraggableItem : MonoBehaviour, IBeginDragHandler, IDragHandl
         }
     }
 
-    private void OnDisable()
+    private void OnDisable() => CancelDrag();
+
+    private void CancelDrag()
     {
         if (dragIconObject != null)
         {
             Destroy(dragIconObject);
+            dragIconObject = null;
+            dragIconRect = null;
         }
     }
 }

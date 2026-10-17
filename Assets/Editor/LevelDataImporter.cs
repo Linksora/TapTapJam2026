@@ -6,9 +6,9 @@ using UnityEditor;
 using UnityEngine;
 
 /// <summary>
-/// 把 Assets/Data/{level}/ 下的三张 CSV 导入为 Assets/Resources/LevelData/{level}/ 下的 ScriptableObject，
+/// 把 Assets/Data/{level}/ 下的关卡 CSV 导入为 Assets/Resources/LevelData/{level}/ 下的 ScriptableObject，
 /// 供运行时 Resources.Load("LevelData/{level}/LevelDatabase") 读取。
-/// 物品图标仍按 IconPath 文件名在 Assets/Generated/{level} 内查找 PNG 并连线；
+/// 物品图标优先按 IconPath 从 Resources 加载正式证据 Sprite，兼容旧版 Generated 图标；
 /// 立绘只存文件名，运行时从 Resources/Portraits 按名字加载。
 /// </summary>
 public static class LevelDataImporter
@@ -16,6 +16,15 @@ public static class LevelDataImporter
     private const string DataRoot = "Assets/Data";
     private const string ResourceRoot = "Assets/Resources/LevelData";
     private const string GeneratedRoot = "Assets/Generated";
+
+    [InitializeOnLoadMethod]
+    private static void ImportBeforePlay()
+    {
+        EditorApplication.playModeStateChanged += state =>
+        {
+            if (state == PlayModeStateChange.ExitingEditMode) ImportAll();
+        };
+    }
 
     [MenuItem("TapJam/Import All Level CSV")]
     public static void ImportAll()
@@ -119,6 +128,34 @@ public static class LevelDataImporter
             SetString(serialized, "option2Text", scriptTable.Get(i, "Option2_Text"));
             SetString(serialized, "option2Target", scriptTable.Get(i, "Option2_Target").Trim());
             SetString(serialized, "nextTarget", scriptTable.Get(i, "NextDialogueID").Trim());
+            SetString(serialized, "background", scriptTable.Get(i, "Background").Trim());
+            SetObject(serialized, "rewardClue", clueMap.GetValueOrDefault(scriptTable.Get(i, "RewardClueID").Trim()));
+            SetString(serialized, "mainCharacters", scriptTable.Get(i, "MainCharacters"));
+            SetString(serialized, "searchStartZone", scriptTable.Get(i, "SearchStartZone"));
+            SetString(serialized, "stageAction", scriptTable.Get(i, "StageAction"));
+            SetString(serialized, "conditionGroup", scriptTable.Get(i, "ConditionGroup"));
+            SetString(serialized, "conditionStatement", scriptTable.Get(i, "ConditionStatement"));
+            SetString(serialized, "conditionValue", scriptTable.Get(i, "ConditionValue"));
+            SetString(serialized, "alternateTarget", scriptTable.Get(i, "AlternateTarget"));
+            serialized.FindProperty("holdSeconds").floatValue = float.TryParse(scriptTable.Get(i, "HoldSeconds"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float hold) ? hold : 0;
+            string nodeType = scriptTable.Get(i, "NodeType").Trim();
+            serialized.FindProperty("isTransition").boolValue = nodeType == "Transition" || nodeType == "Search"
+                || scriptTable.Get(i, "Speaker").Trim() == "【玩法】";
+
+            string searchRaw = scriptTable.Get(i, "SearchClueIDs").Trim();
+            string[] searchClueIds = string.IsNullOrEmpty(searchRaw)
+                ? System.Array.Empty<string>()
+                : searchRaw.Split('|', System.StringSplitOptions.RemoveEmptyEntries);
+            for (int s = 0; s < searchClueIds.Length; s++)
+            {
+                searchClueIds[s] = searchClueIds[s].Trim();
+            }
+
+            SetStringArray(serialized, "searchClueIds", searchClueIds);
+            string optionalRaw = scriptTable.Get(i, "OptionalClueIDs").Trim();
+            string[] optionalIds = optionalRaw.Split('|', System.StringSplitOptions.RemoveEmptyEntries);
+            for (int s = 0; s < optionalIds.Length; s++) optionalIds[s] = optionalIds[s].Trim();
+            SetStringArray(serialized, "optionalClueIds", optionalIds);
             serialized.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(dialogue);
             dialogueOrder.Add(dialogue);
@@ -159,6 +196,8 @@ public static class LevelDataImporter
             SetString(serialized, "wrongPortraitPath", assemblyTable.Get(i, "WrongPortraitPath").Trim());
             SetString(serialized, "hesitantPortraitPath", assemblyTable.Get(i, "HesitantPortraitPath").Trim());
             SetObject(serialized, "targetClue", clueMap.GetValueOrDefault(assemblyTable.Get(i, "TargetClueID").Trim()));
+            SetString(serialized, "characterId", assemblyTable.Get(i, "CharacterID").Trim());
+            SetStringArray(serialized, "wrongClueTargets", assemblyTable.Get(i, "WrongClueTargets").Split('|', System.StringSplitOptions.RemoveEmptyEntries));
             serialized.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(question);
             questionOrder.Add(question);
@@ -173,6 +212,7 @@ public static class LevelDataImporter
         SetObjectArray(dbSerialized, "questions", questionOrder);
         dbSerialized.ApplyModifiedPropertiesWithoutUndo();
         EditorUtility.SetDirty(database);
+        LevelDataExtensionsImporter.Import(inputDir, outputRoot, database);
 
         AssetDatabase.SaveAssets();
 
@@ -254,6 +294,13 @@ public static class LevelDataImporter
             return null;
         }
 
+        string path = resourcePath.Trim();
+        if (path.StartsWith("Assets/Resources/")) path = path.Substring("Assets/Resources/".Length);
+        if (path.EndsWith(".png", System.StringComparison.OrdinalIgnoreCase)) path = path.Substring(0, path.Length - 4);
+        // 正式证据图使用 Multiple Sprite 导入，主资源是 Texture，必须读取切片。
+        Sprite[] sprites = Resources.LoadAll<Sprite>(path);
+        if (sprites.Length > 0) return sprites[0];
+
         string leaf = resourcePath.Trim();
         int slash = leaf.LastIndexOf('/');
         if (slash >= 0)
@@ -261,7 +308,8 @@ public static class LevelDataImporter
             leaf = leaf.Substring(slash + 1);
         }
 
-        // 物品图标仍由 Generated 里的占位 PNG 提供，以后换正式图标覆盖同名文件即可。
+        if (path.StartsWith("Art/"))
+            Debug.LogWarning($"[{level}] 找不到正式证据图标 Resources/{path}。");
         return AssetDatabase.LoadAssetAtPath<Sprite>($"{GeneratedRoot}/{level}/{leaf}.png");
     }
 

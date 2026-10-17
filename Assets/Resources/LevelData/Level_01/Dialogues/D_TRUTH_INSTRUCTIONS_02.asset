@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 081781e1f08514fd3a88cd1ee325f345, type: 3}
+  m_Name: D_TRUTH_INSTRUCTIONS_02
+  m_EditorClassIdentifier: Assembly-CSharp::DialogueData
+  dialogueId: D_TRUTH_INSTRUCTIONS_02
+  entryClue: {fileID: 0}
+  speaker: "\u7CFB\u7EDF"
+  text: "\u56FA\u5B9A\u4E8B\u5B9E\u4FDD\u7559\uFF0C\u5F85\u6838\u5B9E\u524D\u7F00\u66F4\u65B0\u4E3A\u201C\u5B9E\u9645\u201D\u3002\u70B9\u51FB\u52A0\u6846\u7684\u5173\u952E\u8BCD\u91CD\u9009\uFF0C\u5373\u4F7F\u539F\u8BCD\u63A5\u8FD1\u4E8B\u5B9E\uFF0C\u4E5F\u8981\u9009\u51FA\u7531\u672C\u4EBA\u8BC1\u8BCD\u652F\u6301\u7684\u7CBE\u786E\u8868\u8FF0\u3002"
+  portraitPath: 
+  option1Text: 
+  option1Target: 
+  option2Text: 
+  option2Target: 
+  nextTarget: B_Truth
+  background: 
+  searchClueIds: []
+  optionalClueIds: []
+  isTransition: 0
+  rewardClue: {fileID: 0}
+  mainCharacters: 
+  conditionGroup: 
+  conditionStatement: 
+  conditionValue: 
+  alternateTarget: 
+  searchStartZone: 
+  stageAction: 
+  holdSeconds: 0

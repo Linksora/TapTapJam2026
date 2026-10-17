@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ccac49dc7af7064e81f5767fea3bfac, type: 3}
+  m_Name: OP_Promotion
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  itemId: OP_Promotion
+  itemName: "\u4FC3\u9500\u724C"
+  icon: {fileID: 7499299558487708284, guid: 3b64b636e8945446aa6d9407a5f209ca, type: 3}
+  description: "\u4E70\u94C5\u7B14\u9001\u8C46\u5976\u7684\u6D3B\u52A8\u53EA\u6709\u59B9\u59B9\u53C2\u52A0\u3002\u4E0D\u8BA1\u5165\u901A\u5173\u8BC1\u636E\uFF0C\u4E0D\u8865\u5145\u59B9\u59B9\u52A8\u673A\u3002"
+  nextClue: {fileID: 0}

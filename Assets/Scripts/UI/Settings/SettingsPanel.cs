@@ -51,7 +51,7 @@ public sealed class SettingsPanel : MonoBehaviour
             Debug.LogWarning("SettingsPanel：场景中找不到 SettingsButton（齿轮入口），面板将无法打开。");
         }
 
-        SetVolumeLevel(5);
+        SetVolumeLevel(GameAudio.MasterVolumeLevel);
 
         if (panelRoot != null)
         {
@@ -98,7 +98,7 @@ public sealed class SettingsPanel : MonoBehaviour
     private void SetVolumeLevel(int level)
     {
         level = Mathf.Clamp(level, 0, 5);
-        AudioListener.volume = level / 5f;
+        GameAudio.Instance.SetMasterVolumeLevel(level);
 
         if (volumeBarImage != null && volumeSprites != null && level < volumeSprites.Length && volumeSprites[level] != null)
         {

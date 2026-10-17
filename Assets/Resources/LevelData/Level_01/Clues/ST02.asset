@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ccac49dc7af7064e81f5767fea3bfac, type: 3}
+  m_Name: ST02
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  itemId: ST02
+  itemName: "\u968F\u9633\u5149\u6362\u4F4D\u7F6E"
+  icon: {fileID: 8554843162472854928, guid: bbcb3b9cfa0504fac9df4aee7eff8631, type: 3}
+  description: "\u59B9\u59B9\u5728\u4E0D\u540C\u65E5\u671F\u968F\u7A97\u8FB9\u9633\u5149\u79FB\u52A8\u505C\u7559\u4F4D\u7F6E\uFF1B\u540C\u5904\u6B8B\u7559\u6DE1\u6DE1\u7EB8\u4E0E\u82B1\u7684\u6C14\u5473\uFF0C\u6765\u6E90\u672A\u77E5\u3002\u7EB8\u4E0E\u82B1\u53EA\u5165\u5907\u6CE8\uFF0C\u4E0D\u80FD\u636E\u6B64\u63A8\u65AD\u5199\u4FE1\u3002"
+  nextClue: {fileID: 0}
