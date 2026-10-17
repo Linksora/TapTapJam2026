@@ -7,12 +7,17 @@ using UnityEngine.UI;
 public sealed class InventoryManager : MonoBehaviour
 {
     [SerializeField] private InventorySlot[] slots;
+    [SerializeField] private Button previousPageButton;
+    [SerializeField] private Button nextPageButton;
+    [SerializeField] private Text pageLabel;
     private readonly List<ItemData> items = new();
     private RectTransform inventoryPanel;
-    private RectTransform scrollContent;
-    private ScrollRect scroll;
+    private int currentPage;
 
     public IReadOnlyList<ItemData> Items => items;
+    public int CurrentPage => currentPage;
+    public int ItemsPerPage => slots?.Length ?? 0;
+    public int PageCount => Mathf.Max(1, ItemsPerPage > 0 ? Mathf.CeilToInt(items.Count / (float)ItemsPerPage) : 1);
 
     /// <summary>成功入包/移出后触发，供剧情系统做“证物集齐”判定。</summary>
     public event Action ItemsChanged;
@@ -20,10 +25,12 @@ public sealed class InventoryManager : MonoBehaviour
     private void Awake()
     {
         ResolveSlots();
+        EnsurePageControls();
+        if (previousPageButton != null) previousPageButton.onClick.AddListener(PreviousPage);
+        if (nextPageButton != null) nextPageButton.onClick.AddListener(NextPage);
         RefreshUI();
     }
 
-    /// <summary>场景按约定名字搭建时 slots 序列化数组可能为空，运行时从 InventoryPanel 下兜底收集。</summary>
     private void ResolveSlots()
     {
         Transform panel = FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None)
@@ -31,7 +38,6 @@ public sealed class InventoryManager : MonoBehaviour
         if (panel != null)
         {
             inventoryPanel = panel as RectTransform;
-            // 以当前布局为准，包含用户新增的格子，并按从上到下、从左到右填充。
             slots = panel.GetComponentsInChildren<InventorySlot>(true)
                 .OrderByDescending(slot => panel.InverseTransformPoint(slot.transform.position).y)
                 .ThenBy(slot => panel.InverseTransformPoint(slot.transform.position).x)
@@ -41,102 +47,129 @@ public sealed class InventoryManager : MonoBehaviour
             slots = slots.Where(slot => slot != null).ToArray();
     }
 
-    public bool AddItem(ItemData item)
+    /// <summary>沿用现有六格布局，在下方补上翻页按钮；已有按钮保留位置和美术。</summary>
+    public bool EnsurePageControls()
     {
-        if (item == null || slots == null)
+        if (inventoryPanel == null) ResolveSlots();
+        if (inventoryPanel == null || ItemsPerPage == 0) return false;
+        bool changed = false;
+        if (previousPageButton == null)
         {
-            return false;
+            previousPageButton = inventoryPanel.Find("InventoryPreviousPageButton")?.GetComponent<Button>();
+            if (previousPageButton == null)
+            {
+                previousPageButton = CreatePageButton("InventoryPreviousPageButton", "左箭头", -48f);
+                changed = true;
+            }
         }
-
-        // 同一条证物只能入包一次：拼凑答对/面质可能被重复触发。
-        if (items.Any(existing => existing != null && existing.ItemId == item.ItemId))
+        if (nextPageButton == null)
         {
-            return false;
+            nextPageButton = inventoryPanel.Find("InventoryNextPageButton")?.GetComponent<Button>();
+            if (nextPageButton == null)
+            {
+                nextPageButton = CreatePageButton("InventoryNextPageButton", "右箭头", 48f);
+                changed = true;
+            }
         }
-
-        if (items.Count >= slots.Length && !AddOverflowSlot()) return false;
-
-        items.Add(item);
-        RefreshUI();
-        ItemsChanged?.Invoke();
-        return true;
+        if (pageLabel == null)
+        {
+            pageLabel = inventoryPanel.Find("InventoryPageLabel")?.GetComponent<Text>();
+            if (pageLabel == null)
+            {
+                var label = new GameObject("InventoryPageLabel", typeof(RectTransform), typeof(Text));
+                label.transform.SetParent(inventoryPanel, false);
+                LayoutPageControl(label.GetComponent<RectTransform>(), 0f, new Vector2(64f, 32f));
+                pageLabel = label.GetComponent<Text>();
+                pageLabel.font = GameFont.Primary;
+                pageLabel.fontSize = 18;
+                pageLabel.color = new Color(0.04f, 0.32f, 0.2f);
+                pageLabel.alignment = TextAnchor.MiddleCenter;
+                pageLabel.raycastTarget = false;
+                pageLabel.text = "1/1";
+                changed = true;
+            }
+        }
+        return changed;
     }
 
-    // 沿用现有格子的尺寸和间距。线索超过手工摆放的容量时，增加下一格并允许滚动。
-    private bool AddOverflowSlot()
+    private Button CreatePageButton(string objectName, string artName, float x)
     {
-        if (inventoryPanel == null || slots.Length == 0) return false;
-        RectTransform first = (RectTransform)slots[0].transform;
-        var firstRow = slots.Where(slot => Mathf.Abs(((RectTransform)slot.transform).anchoredPosition.y
-            - first.anchoredPosition.y) < 1f).ToArray();
-        int columns = firstRow.Length;
-        float rowStep = slots.Length > columns
-            ? Mathf.Abs(first.anchoredPosition.y - ((RectTransform)slots[columns].transform).anchoredPosition.y)
-            : first.rect.height + 6f;
+        var go = new GameObject(objectName, typeof(RectTransform), typeof(Image), typeof(Button));
+        go.transform.SetParent(inventoryPanel, false);
+        LayoutPageControl(go.GetComponent<RectTransform>(), x, new Vector2(28f, 38f));
+        Image image = go.GetComponent<Image>();
+        image.sprite = Resources.LoadAll<Sprite>($"Art/左右箭头/{artName}").FirstOrDefault();
+        image.preserveAspect = true;
+        Button button = go.GetComponent<Button>();
+        button.targetGraphic = image;
+        button.transition = Selectable.Transition.SpriteSwap;
+        Sprite bright = Resources.LoadAll<Sprite>($"Art/左右箭头/{artName}_选中").FirstOrDefault();
+        button.spriteState = new SpriteState { highlightedSprite = bright, pressedSprite = bright, selectedSprite = bright };
+        button.navigation = new Navigation { mode = Navigation.Mode.None };
+        return button;
+    }
 
-        if (scrollContent == null)
-        {
-            scrollContent = new GameObject("InventoryContent", typeof(RectTransform)).GetComponent<RectTransform>();
-            scrollContent.SetParent(inventoryPanel, false);
-            scrollContent.anchorMin = new Vector2(0f, 1f);
-            scrollContent.anchorMax = Vector2.one;
-            scrollContent.pivot = new Vector2(0.5f, 1f);
-            scrollContent.sizeDelta = new Vector2(0f, inventoryPanel.rect.height);
-            foreach (InventorySlot slot in slots)
-            {
-                Vector2 position = ((RectTransform)slot.transform).anchoredPosition;
-                slot.transform.SetParent(scrollContent, false);
-                ((RectTransform)slot.transform).anchoredPosition = position;
-            }
-            if (inventoryPanel.GetComponent<RectMask2D>() == null)
-                inventoryPanel.gameObject.AddComponent<RectMask2D>();
-            scroll = inventoryPanel.gameObject.AddComponent<ScrollRect>();
-            scroll.viewport = inventoryPanel;
-            scroll.content = scrollContent;
-            scroll.horizontal = false;
-            scroll.movementType = ScrollRect.MovementType.Clamped;
-            scroll.scrollSensitivity = 30f;
-        }
+    private static void LayoutPageControl(RectTransform rect, float x, Vector2 size)
+    {
+        rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = new Vector2(x, 35f);
+        rect.sizeDelta = size;
+    }
 
-        int index = slots.Length;
-        InventorySlot added = Instantiate(slots[index % columns], scrollContent);
-        added.name = $"Slot{index + 1:00}";
-        RectTransform rect = (RectTransform)added.transform;
-        rect.anchoredPosition = new Vector2(((RectTransform)firstRow[index % columns].transform).anchoredPosition.x,
-            first.anchoredPosition.y - index / columns * rowStep);
-        added.SetItem(null);
-        slots = slots.Concat(new[] { added }).ToArray();
-        float height = Mathf.Max(inventoryPanel.rect.height, -rect.anchoredPosition.y + rect.rect.height * rect.pivot.y);
-        scrollContent.sizeDelta = new Vector2(0f, height);
-        NotebookPanel notebook = inventoryPanel.GetComponentInParent<NotebookPanel>();
-        if (notebook != null) notebook.BindInventoryItem(added.GetComponentInChildren<DraggableItem>(true));
-        Canvas.ForceUpdateCanvases();
-        scroll.verticalNormalizedPosition = 0f;
+    public bool AddItem(ItemData item)
+    {
+        if (item == null || ItemsPerPage == 0
+            || items.Any(existing => existing != null && existing.ItemId == item.ItemId)) return false;
+        items.Add(item);
+        // 新证据所在页直接显示，打开笔记本时即可看到刚找到的证据。
+        currentPage = (items.Count - 1) / ItemsPerPage;
+        RefreshUI();
+        ItemsChanged?.Invoke();
         return true;
     }
 
     public bool RemoveItem(ItemData item)
     {
-        if (item == null || !items.Remove(item))
-        {
-            return false;
-        }
-
+        if (item == null || !items.Remove(item)) return false;
         RefreshUI();
         ItemsChanged?.Invoke();
         return true;
     }
 
+    public void PreviousPage() => GoToPage(currentPage - 1);
+    public void NextPage() => GoToPage(currentPage + 1);
+
+    public void GoToPage(int page)
+    {
+        currentPage = Mathf.Clamp(page, 0, PageCount - 1);
+        RefreshUI();
+    }
+
     public void RefreshUI()
     {
-        if (slots == null)
-        {
-            return;
-        }
-
+        if (slots == null) return;
+        currentPage = Mathf.Clamp(currentPage, 0, PageCount - 1);
         for (int i = 0; i < slots.Length; i++)
         {
-            slots[i]?.SetItem(i < items.Count ? items[i] : null);
+            int index = currentPage * slots.Length + i;
+            slots[i]?.SetItem(index < items.Count ? items[index] : null);
         }
+        UpdatePageButton(previousPageButton, currentPage > 0);
+        UpdatePageButton(nextPageButton, currentPage + 1 < PageCount);
+        if (pageLabel != null) pageLabel.text = $"{currentPage + 1}/{PageCount}";
+    }
+
+    private static void UpdatePageButton(Button button, bool available)
+    {
+        if (button == null) return;
+        button.interactable = available;
+        if (button.targetGraphic != null) button.targetGraphic.color = new Color(1f, 1f, 1f, available ? 1f : 0.3f);
+    }
+
+    private void OnDestroy()
+    {
+        if (previousPageButton != null) previousPageButton.onClick.RemoveListener(PreviousPage);
+        if (nextPageButton != null) nextPageButton.onClick.RemoveListener(NextPage);
     }
 }

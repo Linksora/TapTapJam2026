@@ -25,6 +25,7 @@ public sealed class InventorySlot : MonoBehaviour
                 capturedIconColor = true;
             }
             itemIcon.sprite = item != null ? item.Icon : null;
+            itemIcon.preserveAspect = true;
             // 未配图标的线索仍需要可点击、可拖拽的 Graphic。
             itemIcon.enabled = item != null;
             itemIcon.raycastTarget = true;
@@ -57,8 +58,7 @@ public sealed class InventorySlot : MonoBehaviour
         rect.offsetMin = rect.offsetMax = Vector2.zero;
         fallbackLabel = label.GetComponent<Text>();
         if (fallbackFont == null)
-            fallbackFont = Font.CreateDynamicFontFromOSFont(
-                new[] { "PingFang SC", "Microsoft YaHei", "SimHei", "Arial" }, 20);
+            fallbackFont = GameFont.Primary;
         fallbackLabel.font = fallbackFont;
         fallbackLabel.fontSize = 20;
         fallbackLabel.alignment = TextAnchor.MiddleCenter;

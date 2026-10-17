@@ -28,6 +28,8 @@ public sealed class DraggableItem : MonoBehaviour, IBeginDragHandler, IDragHandl
 
     public void SetItem(ItemData value)
     {
+        // 翻页复用格子时，终止上一件证物尚未完成的拖拽。
+        if (item != value) CancelDrag();
         item = value;
     }
 
@@ -98,8 +100,7 @@ public sealed class DraggableItem : MonoBehaviour, IBeginDragHandler, IDragHandl
         text.color = Color.white;
         text.fontSize = 22;
         text.raycastTarget = false;
-        text.font = Font.CreateDynamicFontFromOSFont(
-            new[] { "PingFang SC", "Microsoft YaHei", "SimHei", "Arial" }, text.fontSize);
+        text.font = GameFont.Primary;
 
         ConfigureChipCanvasGroup(chip);
         return chip;
@@ -138,10 +139,11 @@ public sealed class DraggableItem : MonoBehaviour, IBeginDragHandler, IDragHandl
         var results = new List<RaycastResult>();
         EventSystem.current.RaycastAll(eventData, results);
 
-        foreach (RaycastResult result in results)
+        // 只处理最上层命中的对象，不能穿过笔记本/设置面板向下方角色出示。
+        if (results.Count > 0)
         {
-            ItemReceiver receiver = result.gameObject.GetComponentInParent<ItemReceiver>();
-            if (receiver != null)
+            ItemReceiver receiver = results[0].gameObject.GetComponentInParent<ItemReceiver>();
+            if (receiver != null && receiver.isActiveAndEnabled)
             {
                 receiver.ReceiveItem(item);
                 return;
@@ -170,7 +172,9 @@ public sealed class DraggableItem : MonoBehaviour, IBeginDragHandler, IDragHandl
         }
     }
 
-    private void OnDisable()
+    private void OnDisable() => CancelDrag();
+
+    private void CancelDrag()
     {
         if (dragIconObject != null)
         {

@@ -160,8 +160,7 @@ public sealed class NotebookPanel : MonoBehaviour
             return;
         }
 
-        Font chineseFont = Font.CreateDynamicFontFromOSFont(
-            new[] { "PingFang SC", "Microsoft YaHei", "SimHei", "Arial" }, descriptionText.fontSize);
+        Font chineseFont = GameFont.Primary;
         if (chineseFont != null)
         {
             descriptionText.font = chineseFont;
