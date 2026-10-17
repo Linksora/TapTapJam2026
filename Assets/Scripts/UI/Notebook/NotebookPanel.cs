@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,7 +9,7 @@ using UnityEngine.UI;
 /// 点拉片后笔记本向左平移展开，书脊处出现收起拉片（CloseNotebookButton），再点收回。
 /// 展开后上半页是线索描述文本框（ClueDescriptionText），点下半页物品栏里的物品显示对应描述。
 /// 场景内对象全部按约定名字查找（InventoryPanel/DragLayer/ClueDescriptionText），不做 Inspector 拖线。
-/// InventoryPanel、DragLayer 在场景里可以先挂在任意 Canvas 下，Awake 会原样挪进滑动层，随笔记本一起收展。
+/// InventoryPanel 随书页滑动；DragLayer 保留在 Canvas 顶层，拖拽图标不受书页收展影响。
 /// 约定物体名：NotebookPanel（滑动的根 RectTransform）、OpenNotebookButton、CloseNotebookButton。
 /// </summary>
 public sealed class NotebookPanel : MonoBehaviour
@@ -21,11 +22,14 @@ public sealed class NotebookPanel : MonoBehaviour
     [Tooltip("平移动画时长（秒）")]
     [SerializeField] private float slideDuration = 0.28f;
 
-    private RectTransform slidingRoot;
-    private Button openButton;
-    private Button closeButton;
-    private Text descriptionText;
+    [SerializeField] private RectTransform slidingRoot;
+    [SerializeField] private Button openButton;
+    [SerializeField] private Button closeButton;
+    [SerializeField] private Text descriptionText;
+    [SerializeField] private RectTransform dragLayer;
     private CanvasGroup canvasGroup;
+    private Vector2 openPosition;
+    private readonly List<DraggableItem> boundItems = new();
 
     private Coroutine slideRoutine;
     private bool isOpen;
@@ -34,9 +38,17 @@ public sealed class NotebookPanel : MonoBehaviour
 
     private void Awake()
     {
-        slidingRoot = FindRecursive(transform, "NotebookPanel") as RectTransform;
-        openButton = FindButton("OpenNotebookButton");
-        closeButton = FindButton("CloseNotebookButton");
+        if (slidingRoot == null) slidingRoot = FindRecursive(transform, "NotebookPanel") as RectTransform;
+        if (openButton == null) openButton = FindButton("OpenNotebookButton");
+        if (closeButton == null) closeButton = FindButton("CloseNotebookButton");
+        if (slidingRoot == null)
+        {
+            Debug.LogError("NotebookPanel：找不到笔记本滑动层。", this);
+            enabled = false;
+            return;
+        }
+        // 编辑态摆放的位置就是展开位置，不能再写死 x = 0。
+        openPosition = slidingRoot.anchoredPosition;
 
         // 滑动层收起后仍盖住大半个屏幕，必须靠 CanvasGroup 整块放行射线，
         // 否则关闭状态下笔记本的全屏底图会吞掉 world 搜证和对话框的点击。
@@ -47,7 +59,7 @@ public sealed class NotebookPanel : MonoBehaviour
         }
 
         AdoptScenePiece("InventoryPanel");
-        AdoptScenePiece("DragLayer");
+        ResolveDragLayer();
         MakeBackgroundClickThrough();
         ResolveDescription();
         BindInventoryClicks();
@@ -81,8 +93,10 @@ public sealed class NotebookPanel : MonoBehaviour
             return;
         }
 
+        // 已经在书页下就保留用户布局，避免再收进其他同名面板。
+        if (FindRecursive(slidingRoot, objectName) != null) return;
         Transform found = FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None)
-            .FirstOrDefault(t => t.name == objectName && !t.IsChildOf(slidingRoot) && t != slidingRoot);
+            .FirstOrDefault(t => t.gameObject.scene == gameObject.scene && t.name == objectName);
         if (found == null)
         {
             return;
@@ -96,6 +110,23 @@ public sealed class NotebookPanel : MonoBehaviour
         {
             closeButton.transform.SetAsLastSibling();
         }
+    }
+
+    private void ResolveDragLayer()
+    {
+        if (dragLayer == null)
+            dragLayer = FindRecursive(transform, "DragLayer") as RectTransform;
+        if (dragLayer == null)
+            dragLayer = FindObjectsByType<RectTransform>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .FirstOrDefault(t => t.gameObject.scene == gameObject.scene && t.name == "DragLayer");
+        if (dragLayer == null)
+            dragLayer = new GameObject("DragLayer", typeof(RectTransform)).GetComponent<RectTransform>();
+
+        dragLayer.SetParent(transform, false);
+        dragLayer.anchorMin = Vector2.zero;
+        dragLayer.anchorMax = Vector2.one;
+        dragLayer.offsetMin = dragLayer.offsetMax = Vector2.zero;
+        dragLayer.SetAsLastSibling();
     }
 
     /// <summary>
@@ -121,7 +152,8 @@ public sealed class NotebookPanel : MonoBehaviour
         Transform textTransform = slidingRoot != null
             ? FindRecursive(slidingRoot, "ClueDescriptionText")
             : FindRecursive(transform, "ClueDescriptionText");
-        descriptionText = textTransform != null ? textTransform.GetComponent<Text>() : null;
+        if (descriptionText == null)
+            descriptionText = textTransform != null ? textTransform.GetComponent<Text>() : null;
         if (descriptionText == null)
         {
             Debug.LogWarning("NotebookPanel：找不到 ClueDescriptionText（执行 TapJam/Build Notebook Panel）。");
@@ -136,14 +168,31 @@ public sealed class NotebookPanel : MonoBehaviour
         }
 
         descriptionText.text = DescriptionPlaceholder;
+        descriptionText.raycastTarget = false;
     }
 
     private void BindInventoryClicks()
     {
-        foreach (DraggableItem draggable in FindObjectsByType<DraggableItem>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        foreach (DraggableItem draggable in slidingRoot.GetComponentsInChildren<DraggableItem>(true))
         {
-            draggable.Clicked += ShowDescription;
+            BindInventoryItem(draggable);
         }
+    }
+
+    public void BindInventoryItem(DraggableItem draggable)
+    {
+        if (draggable == null || boundItems.Contains(draggable)) return;
+        draggable.ConfigureNotebook(GetComponentInParent<Canvas>(), dragLayer);
+        draggable.Clicked += ShowDescription;
+        boundItems.Add(draggable);
+    }
+
+    private void OnDestroy()
+    {
+        if (openButton != null) openButton.onClick.RemoveListener(Open);
+        if (closeButton != null) closeButton.onClick.RemoveListener(Close);
+        foreach (DraggableItem draggable in boundItems)
+            if (draggable != null) draggable.Clicked -= ShowDescription;
     }
 
     /// <summary>点击物品栏物品：在上半页文本框显示物品名与描述。</summary>
@@ -177,7 +226,7 @@ public sealed class NotebookPanel : MonoBehaviour
             closeButton.gameObject.SetActive(true);
         }
 
-        StartSlide(0f);
+        StartSlide(openPosition.x);
     }
 
     public void Close()
@@ -195,7 +244,7 @@ public sealed class NotebookPanel : MonoBehaviour
             closeButton.gameObject.SetActive(false);
         }
 
-        StartSlide(slideDistance);
+        StartSlide(openPosition.x + slideDistance);
     }
 
     public void Toggle()
@@ -217,7 +266,7 @@ public sealed class NotebookPanel : MonoBehaviour
         if (slidingRoot != null)
         {
             Vector2 position = slidingRoot.anchoredPosition;
-            position.x = slideDistance;
+            position.x = openPosition.x + slideDistance;
             slidingRoot.anchoredPosition = position;
         }
 
@@ -232,7 +281,7 @@ public sealed class NotebookPanel : MonoBehaviour
         }
     }
 
-    /// <summary>展开时整块拦截点击（模态）；收起时整块穿透，露出下面的 world 搜证点和对话框。</summary>
+    /// <summary>展开时启用书页内交互；收起时穿透，场景和对话框保持可点击。</summary>
     private void SetRaycastBlocking(bool blocking)
     {
         if (canvasGroup != null)
@@ -282,8 +331,7 @@ public sealed class NotebookPanel : MonoBehaviour
 
     private Button FindButton(string name)
     {
-        return FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None)
-            .FirstOrDefault(b => b.gameObject.name == name);
+        return FindRecursive(transform, name)?.GetComponent<Button>();
     }
 
     private static Transform FindRecursive(Transform root, string name)
