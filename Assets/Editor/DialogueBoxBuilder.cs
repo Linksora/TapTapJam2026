@@ -8,7 +8,7 @@ using UnityEngine.UI;
 
 /// <summary>
 /// 在 Celia_TestScene 的 Canvas 下创建统一对话 UI（DialogueBox）：
-/// 立绘 + 说话人 + 台词 + 两个选项按钮，组件引用自动连好。
+/// 立绘 + 说话人 + 台词 + Options 选项按钮，组件引用自动连好。
 /// 打开场景时自动检查，已存在则跳过；验收后可自行拖成 prefab。
 /// </summary>
 public static class DialogueBoxBuilder
@@ -129,7 +129,7 @@ public static class DialogueBoxBuilder
         speakerRect.sizeDelta = new Vector2(-248f, 40f);
         Text speakerText = speakerObject.AddComponent<Text>();
         speakerText.text = string.Empty;
-        speakerText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        speakerText.font = GameFont.Primary;
         speakerText.fontSize = 32;
         speakerText.alignment = TextAnchor.MiddleLeft;
         speakerText.color = new Color(1f, 0.86f, 0.55f);
@@ -141,15 +141,34 @@ public static class DialogueBoxBuilder
         Stretch(contentRect, new Vector2(232f, 84f), new Vector2(-20f, -66f));
         Text contentText = contentObject.AddComponent<Text>();
         contentText.text = string.Empty;
-        contentText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        contentText.font = GameFont.Primary;
         contentText.fontSize = 28;
         contentText.alignment = TextAnchor.UpperLeft;
         contentText.color = new Color(0.98f, 0.94f, 0.82f);
         contentText.horizontalOverflow = HorizontalWrapMode.Wrap;
         contentText.raycastTarget = false;
 
-        // 选项区：运行时由 DialogueBoxView 在对话框上方动态构建（数量不限、可滚动），
-        // 场景里不再预摆按钮，避免分叉两套布局。
+        GameObject options = CreateUIObject("Options", root.transform);
+        RectTransform optionsRect = options.GetComponent<RectTransform>();
+        optionsRect.anchorMin = optionsRect.anchorMax = new Vector2(0.5f, 1f);
+        optionsRect.pivot = new Vector2(0.5f, 0f);
+        optionsRect.anchoredPosition = new Vector2(0f, 12f);
+        optionsRect.sizeDelta = new Vector2(760f, 200f);
+        VerticalLayoutGroup optionLayout = options.AddComponent<VerticalLayoutGroup>();
+        optionLayout.spacing = 8f;
+        optionLayout.childAlignment = TextAnchor.UpperCenter;
+        optionLayout.childControlWidth = false;
+        optionLayout.childControlHeight = false;
+        optionLayout.childForceExpandWidth = false;
+        optionLayout.childForceExpandHeight = false;
+        Button[] optionButtons = new Button[3];
+        for (int i = 0; i < optionButtons.Length; i++)
+        {
+            optionButtons[i] = CreateSwitchButton($"OptionButton{i + 1}", string.Empty, options.transform, 0.5f);
+            optionButtons[i].GetComponent<RectTransform>().sizeDelta = new Vector2(380f, 56f);
+            optionButtons[i].GetComponentInChildren<Text>().fontSize = 26;
+        }
+        options.SetActive(false);
 
         DialogueBoxView view = root.AddComponent<DialogueBoxView>();
         SerializedObject serialized = new(view);
@@ -159,6 +178,11 @@ public static class DialogueBoxBuilder
         serialized.FindProperty("rightButton").objectReferenceValue = right;
         serialized.FindProperty("speakerText").objectReferenceValue = speakerText;
         serialized.FindProperty("contentText").objectReferenceValue = contentText;
+        serialized.FindProperty("optionsRoot").objectReferenceValue = options;
+        SerializedProperty buttons = serialized.FindProperty("optionButtons");
+        buttons.arraySize = optionButtons.Length;
+        for (int i = 0; i < optionButtons.Length; i++)
+            buttons.GetArrayElementAtIndex(i).objectReferenceValue = optionButtons[i];
         serialized.ApplyModifiedPropertiesWithoutUndo();
         EditorUtility.SetDirty(view);
 
@@ -181,7 +205,7 @@ public static class DialogueBoxBuilder
         GameObject textObject = CreateUIObject("Label", buttonObject.transform);
         Stretch(textObject.GetComponent<RectTransform>(), Vector2.zero, Vector2.zero);
         Text text = textObject.AddComponent<Text>();
-        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        text.font = GameFont.Primary;
         text.text = label;
         text.alignment = TextAnchor.MiddleCenter;
         text.color = Color.black;

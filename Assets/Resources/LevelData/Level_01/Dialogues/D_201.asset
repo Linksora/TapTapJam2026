@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 081781e1f08514fd3a88cd1ee325f345, type: 3}
+  m_Name: D_201
+  m_EditorClassIdentifier: Assembly-CSharp::DialogueData
+  dialogueId: D_201
+  entryClue: {fileID: 0}
+  speaker: "\u5C0F\u6BDB"
+  text: "\uFF08\u6BD5\u7ADF\u662F\u70B9\u5934\u4E4B\u4EA4\u7684\u5173\u7CFB\u597D\u3002\u4F46\u662F\u2026\u2026\u59D3\u540D\u3001\u4F4F\u5740\u3001\u76D1\u62A4\u4EBA\uFF0C\u751A\u81F3\u54EA\u4E2A\u73ED\u90FD\u51E0\u4E4E\u6BEB\u65E0\u5934\u7EEA\uFF0C\u8FD9\u4E5F\u592A\u2026\u2026\uFF09"
+  portraitPath: "\u5C0F\u6BDB"
+  option1Text: 
+  option1Target: 
+  option2Text: 
+  option2Target: 
+  nextTarget: D_202
+  background: "\u4FBF\u5229\u5E97\u8349\u56FE"
+  searchClueIds: []
+  optionalClueIds: []
+  isTransition: 0
+  rewardClue: {fileID: 0}
+  mainCharacters: 
+  conditionGroup: 
+  conditionStatement: 
+  conditionValue: 
+  alternateTarget: 
+  searchStartZone: 
+  stageAction: 
+  holdSeconds: 0

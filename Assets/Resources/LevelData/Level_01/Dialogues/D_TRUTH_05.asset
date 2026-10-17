@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 081781e1f08514fd3a88cd1ee325f345, type: 3}
+  m_Name: D_TRUTH_05
+  m_EditorClassIdentifier: Assembly-CSharp::DialogueData
+  dialogueId: D_TRUTH_05
+  entryClue: {fileID: 0}
+  speaker: "\u677E\u9F20\u5E97\u5458"
+  text: "\u5148\u56DE\u5E97\u91CC\u5750\u4E00\u4E0B\uFF0C\u597D\u5417\uFF1F\u6709\u70ED\u8C46\u5976\u3002"
+  portraitPath: "\u677E\u9F20\u5E97\u5458"
+  option1Text: 
+  option1Target: 
+  option2Text: 
+  option2Target: 
+  nextTarget: D_TRUTH_06
+  background: 
+  searchClueIds: []
+  optionalClueIds: []
+  isTransition: 0
+  rewardClue: {fileID: 0}
+  mainCharacters: 
+  conditionGroup: 
+  conditionStatement: 
+  conditionValue: 
+  alternateTarget: 
+  searchStartZone: 
+  stageAction: 
+  holdSeconds: 0

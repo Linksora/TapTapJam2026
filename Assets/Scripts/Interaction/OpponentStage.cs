@@ -24,7 +24,7 @@ public sealed class OpponentStage : MonoBehaviour
     private bool dropArmed;
     private bool collected;
 
-    public static OpponentStage Ensure()
+    public static OpponentStage Ensure(IEnumerable<string> characterNames = null)
     {
         var stage = FindFirstObjectByType<OpponentStage>(FindObjectsInactive.Include);
         if (stage == null)
@@ -32,7 +32,7 @@ public sealed class OpponentStage : MonoBehaviour
             stage = new GameObject("OpponentStage").AddComponent<OpponentStage>();
         }
 
-        stage.CollectActors();
+        stage.CollectActors(characterNames);
         return stage;
     }
 
@@ -108,7 +108,7 @@ public sealed class OpponentStage : MonoBehaviour
         }
     }
 
-    private void CollectActors()
+    private void CollectActors(IEnumerable<string> characterNames)
     {
         if (collected)
         {
@@ -119,15 +119,20 @@ public sealed class OpponentStage : MonoBehaviour
         actors.Clear();
 
         Transform worldRoot = FindRoot(WorldRootName);
-        if (worldRoot == null)
-        {
-            return;
-        }
+        Transform characterRoot = FindRoot("Characters");
+        var allowedNames = characterNames != null ? new HashSet<string>(characterNames) : null;
 
-        var renderers = worldRoot.GetComponentsInChildren<SpriteRenderer>(true);
+        var renderers = FindObjectsByType<SpriteRenderer>(FindObjectsInactive.Include);
         foreach (SpriteRenderer renderer in renderers)
         {
             GameObject go = renderer.gameObject;
+            if (go.scene != gameObject.scene) continue;
+            bool inCharacters = characterRoot != null && renderer.transform.IsChildOf(characterRoot);
+            bool inWorld = worldRoot != null && renderer.transform.IsChildOf(worldRoot);
+            if (!inCharacters && !inWorld) continue;
+            // world 同时包含线索、鼠标和背景，不能把所有 SpriteRenderer 当作 NPC。
+            if (go.GetComponentInParent<WorldItem>() != null
+                || (allowedNames != null ? !allowedNames.Contains(go.name) : !inCharacters)) continue;
             if (Array.Exists(ExcludedNames, excluded => go.name == excluded))
             {
                 continue;

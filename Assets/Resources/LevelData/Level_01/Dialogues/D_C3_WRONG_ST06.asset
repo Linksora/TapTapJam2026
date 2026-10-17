@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 081781e1f08514fd3a88cd1ee325f345, type: 3}
+  m_Name: D_C3_WRONG_ST06
+  m_EditorClassIdentifier: Assembly-CSharp::DialogueData
+  dialogueId: D_C3_WRONG_ST06
+  entryClue: {fileID: 0}
+  speaker: "\u5C0F\u6BDB"
+  text: "\u8FD9\u662F\u4F60\u7684\u5224\u65AD\uFF0C\u6211\u4EEC\u9700\u8981\u5224\u65AD\u4E4B\u5916\u7684\u6761\u4EF6\u3002"
+  portraitPath: "\u5C0F\u6BDB"
+  option1Text: 
+  option1Target: 
+  option2Text: 
+  option2Target: 
+  nextTarget: Q_C3
+  background: 
+  searchClueIds: []
+  optionalClueIds: []
+  isTransition: 0
+  rewardClue: {fileID: 0}
+  mainCharacters: 
+  conditionGroup: 
+  conditionStatement: 
+  conditionValue: 
+  alternateTarget: 
+  searchStartZone: 
+  stageAction: 
+  holdSeconds: 0

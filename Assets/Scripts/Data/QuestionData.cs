@@ -18,6 +18,17 @@ public sealed class QuestionData : ScriptableObject
     [SerializeField] private string hesitantPortraitPath;
     [SerializeField] private ItemData targetClue;
     [SerializeField] private string characterId;
+    [SerializeField] private string[] wrongClueTargets;
+    public string GetWrongTarget(string clueId)
+    {
+        if (wrongClueTargets != null)
+            foreach (string rule in wrongClueTargets)
+            {
+                string[] parts = rule.Split(new[] { ':' }, 2);
+                if (parts.Length == 2 && parts[0] == clueId) return parts[1];
+            }
+        return wrongTarget;
+    }
 
     public string QuestionId => questionId;
     public string Statement => statement;

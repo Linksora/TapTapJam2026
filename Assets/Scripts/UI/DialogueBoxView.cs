@@ -5,10 +5,8 @@ using UnityEngine.UI;
 using UnityEngine.Serialization;
 
 /// <summary>
-/// 常驻主角 + 对话对象 + 说话人 + 台词 + 动态选项列表。
-/// 选项数量不限（拼凑题 3 个、出示证物可能 7+ 个），超出可视区域可滚动；
-/// 选项列表运行时在对话框上方自建（ChoiceList），不依赖场景里预先摆放，
-/// 旧版 Options 横排两个按钮保留但不再使用。
+/// 常驻主角 + 持续显示的对话对象 + 说话人 + 台词 + Options。
+/// 复用场景 Options 下的按钮和布局；选项超出按钮数量时在原区域翻页。
 /// 用法：
 ///   Show("小毛", "你好", portrait);                                 纯台词
 ///   Show("侦探", "选一个？", portrait,                               带任意数量选项
@@ -16,10 +14,6 @@ using UnityEngine.Serialization;
 /// </summary>
 public sealed class DialogueBoxView : MonoBehaviour
 {
-    private const float ChoicePanelWidth = 760f;
-    private const float ChoicePanelHeight = 460f;
-    private const float ChoiceButtonHeight = 62f;
-
     [Serializable]
     public sealed class MainCharacterEntry
     {
@@ -37,16 +31,24 @@ public sealed class DialogueBoxView : MonoBehaviour
     [SerializeField, Min(0)] private int currentMainCharacterIndex;
     [SerializeField] private Text speakerText;
     [SerializeField] private Text contentText;
+    [SerializeField] private GameObject optionsRoot;
     [SerializeField] private Button[] optionButtons;
 
     private Font chineseFont;
-    private GameObject choiceList;
-    private RectTransform choiceContent;
-    private GameObject choiceTemplate;
-    private string displayedSpeaker;
-    private Sprite displayedPortrait;
+    private readonly List<Button> choiceButtons = new();
+    private (string text, Action onClick)[] currentChoices;
+    private int choicePage;
+    private Sprite conversationPortrait;
+    private ItemReceiver evidenceReceiver;
+    private Action<ItemData> evidenceHandler;
+    private bool characterRaycastTarget;
+    private DeductionBoardView deductionBoard;
+    private bool showingBoard;
+    private Button avatarButton;
 
+    public string ConversationPartnerId { get; private set; }
     public bool IsShowing { get; private set; }
+    public bool IsWaitingForEvidence { get; private set; }
     public string CurrentMainCharacterId => mainCharacters.Count > 0
         ? mainCharacters[currentMainCharacterIndex].characterId : string.Empty;
     public event Action<string> MainCharacterChanged;
@@ -58,10 +60,16 @@ public sealed class DialogueBoxView : MonoBehaviour
             mainCharacterImage = FindChildRecursive(transform, "MainCharacter")?.GetComponent<Image>();
         if (characterImage == null)
             characterImage = FindChildRecursive(transform, "Character")?.GetComponent<Image>();
+        if (characterImage != null) characterRaycastTarget = characterImage.raycastTarget;
         if (dialogueBackground == null)
             dialogueBackground = FindChildRecursive(transform, "DialogueBackground")?.gameObject;
         if (mainCharacterImage != null)
         {
+            avatarButton = mainCharacterImage.GetComponent<Button>();
+            if (avatarButton == null) avatarButton = mainCharacterImage.gameObject.AddComponent<Button>();
+            avatarButton.targetGraphic = mainCharacterImage;
+            avatarButton.transition = Selectable.Transition.None;
+            avatarButton.onClick.AddListener(NextMainCharacter);
             if (leftButton == null)
                 leftButton = FindChildRecursive(mainCharacterImage.transform, "LeftButton")?.GetComponent<Button>();
             if (rightButton == null)
@@ -77,34 +85,33 @@ public sealed class DialogueBoxView : MonoBehaviour
         RefreshMainCharacter();
         SetDialogueVisible(false);
 
-        chineseFont = Font.CreateDynamicFontFromOSFont(
-            new[] { "PingFang SC", "Microsoft YaHei", "SimHei", "Arial" }, 32);
+        chineseFont = GameFont.Primary;
         if (chineseFont != null)
         {
             if (speakerText != null) speakerText.font = chineseFont;
             if (contentText != null) contentText.font = chineseFont;
         }
 
-        // 旧版写死的两个按钮整体停用，选项统一走动态列表。
-        Transform legacyOptions = FindChildRecursive(transform, "Options");
-        if (legacyOptions != null)
-        {
-            legacyOptions.gameObject.SetActive(false);
-        }
+        ResolveOptions();
+        SetChoices(null);
     }
 
     /// <summary>显示纯台词（无选项，需手动 Hide 或再次 Show）。</summary>
     public void Show(string speaker, string content, Sprite portrait = null)
     {
+        HideBoard();
+        StopWaitingForEvidence();
         gameObject.SetActive(true);
         Render(speaker, content, portrait);
         SetChoices(null);
     }
 
-    /// <summary>显示台词并弹出选项（数量不限，纵向排列可滚动）。</summary>
+    /// <summary>显示台词和 Options（超过场景按钮数量时翻页）。</summary>
     public void Show(string speaker, string content, Sprite portrait,
         params (string text, Action onClick)[] options)
     {
+        HideBoard();
+        StopWaitingForEvidence();
         gameObject.SetActive(true);
         Render(speaker, content, portrait);
         SetChoices(options);
@@ -113,13 +120,85 @@ public sealed class DialogueBoxView : MonoBehaviour
     /// <summary>结束本次对话显示，保留 DialogueBox 和当前主角。</summary>
     public void Hide()
     {
+        HideBoard();
+        StopWaitingForEvidence();
         gameObject.SetActive(true);
         SetChoices(null);
+        ClearConversationPartner();
         SetDialogueVisible(false);
+    }
+
+    /// <summary>对方保持沉默，保留立绘和对话区域，接受从笔记本拖来的证物。</summary>
+    public void ShowConfrontation(string characterId, Sprite portrait, Action<ItemData> onEvidence)
+    {
+        Show(characterId, string.Empty, portrait);
+        if (speakerText != null) speakerText.gameObject.SetActive(false);
+        if (contentText != null) contentText.gameObject.SetActive(false);
+        if (evidenceReceiver == null)
+        {
+            evidenceReceiver = GetComponent<ItemReceiver>();
+            if (evidenceReceiver == null) evidenceReceiver = gameObject.AddComponent<ItemReceiver>();
+            evidenceReceiver.OnItemReceived.AddListener(OnEvidenceReceived);
+        }
+        IsWaitingForEvidence = true;
+        evidenceHandler = onEvidence;
+        evidenceReceiver.enabled = true;
+        if (characterImage != null) characterImage.raycastTarget = true;
+    }
+
+    public void StopWaitingForEvidence()
+    {
+        IsWaitingForEvidence = false;
+        evidenceHandler = null;
+        if (evidenceReceiver != null) evidenceReceiver.enabled = false;
+        if (characterImage != null) characterImage.raycastTarget = characterRaycastTarget;
+    }
+
+    private void OnEvidenceReceived(ItemData item)
+    {
+        if (!IsWaitingForEvidence || item == null) return;
+        Action<ItemData> handler = evidenceHandler;
+        StopWaitingForEvidence();
+        handler?.Invoke(item);
     }
 
     public void PreviousMainCharacter() => SwitchMainCharacter(-1);
     public void NextMainCharacter() => SwitchMainCharacter(1);
+
+    public void SetMainCharacters(params string[] ids)
+    {
+        string current = CurrentMainCharacterId;
+        mainCharacters.Clear();
+        foreach (string id in ids)
+            if (!string.IsNullOrWhiteSpace(id)) mainCharacters.Add(new MainCharacterEntry { characterId = id.Trim(), portrait = PortraitLoader.Load(id.Trim()) });
+        if (mainCharacters.Count == 0) mainCharacters.Add(new MainCharacterEntry());
+        currentMainCharacterIndex = Mathf.Max(0, mainCharacters.FindIndex(entry => entry.characterId == current));
+        RefreshMainCharacter(); RefreshCharacter();
+    }
+
+    public void SelectMainCharacter(string id)
+    {
+        int index = mainCharacters.FindIndex(entry => entry.characterId == id);
+        if (index < 0) return;
+        currentMainCharacterIndex = index; RefreshMainCharacter(); RefreshCharacter();
+        MainCharacterChanged?.Invoke(id);
+    }
+
+    private void HideBoard() { deductionBoard?.Hide(); showingBoard = false; }
+
+    public void ShowBoard(DeductionData data, IReadOnlyList<string> selected, bool[] errors, Action<int> choose, Action confirm)
+    {
+        Show(CurrentMainCharacterId, data.title);
+        ClearConversationPartner();
+        if (optionsRoot == null)
+        {
+            Debug.LogError("DialogueBoxView：找不到 Options，无法显示整理线索题目。", this);
+            return;
+        }
+        deductionBoard ??= new DeductionBoardView((RectTransform)optionsRoot.transform);
+        deductionBoard.Show(data, selected, errors, choose, confirm);
+        showingBoard = true;
+    }
 
     private void SwitchMainCharacter(int direction)
     {
@@ -158,25 +237,42 @@ public sealed class DialogueBoxView : MonoBehaviour
     private void RefreshCharacter()
     {
         if (characterImage == null) return;
-        bool visible = IsShowing && !string.IsNullOrWhiteSpace(displayedSpeaker)
-            && displayedSpeaker != CurrentMainCharacterId;
-        characterImage.sprite = visible ? displayedPortrait : null;
-        characterImage.enabled = visible && displayedPortrait != null;
+        bool visible = IsShowing && !string.IsNullOrWhiteSpace(ConversationPartnerId)
+            && ConversationPartnerId != CurrentMainCharacterId;
+        characterImage.sprite = visible ? conversationPortrait : null;
+        characterImage.enabled = visible && conversationPortrait != null;
         characterImage.gameObject.SetActive(visible);
+    }
+
+    public void ClearConversationPartner()
+    {
+        StopWaitingForEvidence();
+        ConversationPartnerId = null;
+        conversationPortrait = null;
+        RefreshCharacter();
     }
 
     private void OnDestroy()
     {
         if (leftButton != null) leftButton.onClick.RemoveListener(PreviousMainCharacter);
         if (rightButton != null) rightButton.onClick.RemoveListener(NextMainCharacter);
+        if (avatarButton != null) avatarButton.onClick.RemoveListener(NextMainCharacter);
+        if (evidenceReceiver != null) evidenceReceiver.OnItemReceived.RemoveListener(OnEvidenceReceived);
     }
 
-    public bool IsShowingOptions => choiceList != null && choiceList.activeSelf;
+    public bool IsShowingOptions => showingBoard || (optionsRoot != null && optionsRoot.activeSelf
+        && currentChoices != null && currentChoices.Length > 0);
 
     private void Render(string speaker, string content, Sprite portrait)
     {
-        displayedSpeaker = speaker;
-        displayedPortrait = portrait;
+        if (string.IsNullOrWhiteSpace(speaker))
+            ClearConversationPartner();
+        else if (speaker != CurrentMainCharacterId)
+        {
+            ConversationPartnerId = speaker;
+            conversationPortrait = portrait;
+        }
+        // 主角接话或内心独白不清除当前交谈对象。
         SetDialogueVisible(true);
         if (speakerText != null)
         {
@@ -192,146 +288,78 @@ public sealed class DialogueBoxView : MonoBehaviour
 
     }
 
+    private void ResolveOptions()
+    {
+        if (optionsRoot == null)
+            optionsRoot = FindChildRecursive(transform, "Options")?.gameObject;
+        if (optionsRoot == null) return;
+
+        // 以当前场景层级为准，包含手动新增的按钮，不依赖旧序列化数组的数量/顺序。
+        foreach (Button button in optionsRoot.GetComponentsInChildren<Button>(true))
+            choiceButtons.Add(button);
+        if (choiceButtons.Count == 1)
+        {
+            Button extra = Instantiate(choiceButtons[0], choiceButtons[0].transform.parent);
+            extra.name = "OptionButton2";
+            choiceButtons.Add(extra);
+        }
+        optionButtons = choiceButtons.ToArray();
+    }
+
     private void SetChoices((string text, Action onClick)[] options)
     {
-        EnsureChoiceList();
-
-        if (options == null || options.Length == 0)
+        currentChoices = options;
+        choicePage = 0;
+        if (optionsRoot == null || choiceButtons.Count == 0)
         {
-            choiceList.SetActive(false);
+            if (options != null && options.Length > 0)
+                Debug.LogError("DialogueBoxView：Options 下没有可用的选项按钮。", this);
             return;
         }
 
-        for (int i = choiceContent.childCount - 1; i >= 0; i--)
-        {
-            Destroy(choiceContent.GetChild(i).gameObject);
-        }
+        RenderChoices();
+    }
 
-        foreach ((string text, Action onClick) option in options)
+    private void RenderChoices()
+    {
+        int count = currentChoices?.Length ?? 0;
+        bool paged = count > choiceButtons.Count;
+        int pageSize = paged ? choiceButtons.Count - 1 : choiceButtons.Count;
+        int start = choicePage * pageSize;
+        for (int i = 0; i < choiceButtons.Count; i++)
         {
-            Button button = Instantiate(choiceTemplate, choiceContent).GetComponent<Button>();
-            button.gameObject.name = "Choice";
-            Text label = button.GetComponentInChildren<Text>();
-            if (label != null)
-            {
-                label.text = option.text;
-            }
-
+            Button button = choiceButtons[i];
             button.onClick.RemoveAllListeners();
-            button.onClick.AddListener(() => option.onClick?.Invoke());
-            button.gameObject.SetActive(true);
+            if (!button.TryGetComponent<GameAudioButton>(out var clickAudio))
+                clickAudio = button.gameObject.AddComponent<GameAudioButton>();
+            clickAudio.Bind();
+            bool navigation = paged && i == choiceButtons.Count - 1;
+            int index = start + i;
+            bool visible = count > 0 && (navigation || index < count);
+            button.gameObject.SetActive(visible);
+            if (!visible) continue;
+
+            button.interactable = true;
+            Text label = button.GetComponentInChildren<Text>(true);
+            if (label != null && chineseFont != null) label.font = chineseFont;
+            if (navigation)
+            {
+                int pageCount = (count + pageSize - 1) / pageSize;
+                if (label != null) label.text = $"下一页（{choicePage + 1}/{pageCount}）";
+                button.onClick.AddListener(() =>
+                {
+                    choicePage = (choicePage + 1) % pageCount;
+                    RenderChoices();
+                });
+            }
+            else
+            {
+                var option = currentChoices[index];
+                if (label != null) label.text = option.text;
+                button.onClick.AddListener(() => option.onClick?.Invoke());
+            }
         }
-
-        choiceList.SetActive(true);
-    }
-
-    /// <summary>
-    /// 首次使用时在对话框上方构建：半透明底 + ScrollRect + 纵向布局 Content + 一个隐藏按钮模板。
-    /// </summary>
-    private void EnsureChoiceList()
-    {
-        if (choiceList != null)
-        {
-            return;
-        }
-
-        choiceList = new GameObject("ChoiceList",
-            typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(ScrollRect));
-        choiceList.transform.SetParent(transform, false);
-
-        RectTransform listRect = choiceList.GetComponent<RectTransform>();
-        listRect.anchorMin = new Vector2(0.5f, 1f);
-        listRect.anchorMax = new Vector2(0.5f, 1f);
-        listRect.pivot = new Vector2(0.5f, 0f);
-        listRect.anchoredPosition = new Vector2(0f, 12f);
-        listRect.sizeDelta = new Vector2(ChoicePanelWidth, ChoicePanelHeight);
-
-        Image listImage = choiceList.GetComponent<Image>();
-        listImage.color = new Color(0.03f, 0.08f, 0.06f, 0.92f);
-        listImage.raycastTarget = true;
-
-        // Viewport + Mask
-        var viewport = new GameObject("Viewport", typeof(RectTransform), typeof(CanvasRenderer), typeof(RectMask2D));
-        viewport.transform.SetParent(choiceList.transform, false);
-        RectTransform viewportRect = viewport.GetComponent<RectTransform>();
-        viewportRect.anchorMin = Vector2.zero;
-        viewportRect.anchorMax = Vector2.one;
-        viewportRect.offsetMin = new Vector2(12f, 12f);
-        viewportRect.offsetMax = new Vector2(-12f, -12f);
-
-        // Content
-        var content = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
-        content.transform.SetParent(viewport.transform, false);
-        choiceContent = content.GetComponent<RectTransform>();
-        choiceContent.anchorMin = new Vector2(0f, 1f);
-        choiceContent.anchorMax = new Vector2(1f, 1f);
-        choiceContent.pivot = new Vector2(0.5f, 1f);
-        choiceContent.anchoredPosition = Vector2.zero;
-        choiceContent.sizeDelta = Vector2.zero;
-
-        VerticalLayoutGroup layout = content.GetComponent<VerticalLayoutGroup>();
-        layout.spacing = 10f;
-        layout.childAlignment = TextAnchor.UpperCenter;
-        layout.childControlWidth = true;
-        layout.childControlHeight = true;
-        layout.childForceExpandWidth = true;
-        layout.childForceExpandHeight = false;
-
-        ContentSizeFitter fitter = content.GetComponent<ContentSizeFitter>();
-        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-        ScrollRect scroll = choiceList.GetComponent<ScrollRect>();
-        scroll.viewport = viewportRect;
-        scroll.content = choiceContent;
-        scroll.horizontal = false;
-        scroll.vertical = true;
-        scroll.movementType = ScrollRect.MovementType.Clamped;
-        scroll.scrollSensitivity = 30f;
-
-        choiceTemplate = BuildChoiceTemplate();
-        // 模板不放进 Content，避免下一次刷新选项时被一起销毁。
-        choiceTemplate.transform.SetParent(choiceList.transform, false);
-        choiceTemplate.SetActive(false);
-
-        choiceList.SetActive(false);
-    }
-
-    private GameObject BuildChoiceTemplate()
-    {
-        var template = new GameObject("ChoiceTemplate",
-            typeof(RectTransform), typeof(LayoutElement), typeof(CanvasRenderer), typeof(Image), typeof(Button));
-
-        LayoutElement layoutElement = template.GetComponent<LayoutElement>();
-        layoutElement.preferredHeight = ChoiceButtonHeight;
-        layoutElement.minHeight = ChoiceButtonHeight;
-
-        Image image = template.GetComponent<Image>();
-        image.color = new Color(0.22f, 0.31f, 0.26f, 1f);
-        image.raycastTarget = true;
-
-        Button button = template.GetComponent<Button>();
-        ColorBlock colors = button.colors;
-        colors.highlightedColor = new Color(0.32f, 0.43f, 0.36f, 1f);
-        colors.pressedColor = new Color(0.16f, 0.23f, 0.19f, 1f);
-        button.colors = colors;
-
-        var labelObject = new GameObject("Label", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
-        labelObject.transform.SetParent(template.transform, false);
-        RectTransform labelRect = labelObject.GetComponent<RectTransform>();
-        labelRect.anchorMin = Vector2.zero;
-        labelRect.anchorMax = Vector2.one;
-        labelRect.offsetMin = new Vector2(12f, 4f);
-        labelRect.offsetMax = new Vector2(-12f, -4f);
-
-        Text label = labelObject.GetComponent<Text>();
-        label.font = chineseFont != null ? chineseFont : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        label.fontSize = 26;
-        label.alignment = TextAnchor.MiddleCenter;
-        label.horizontalOverflow = HorizontalWrapMode.Wrap;
-        label.color = new Color(0.98f, 0.94f, 0.82f);
-        label.raycastTarget = false;
-
-        return template;
+        optionsRoot.SetActive(count > 0);
     }
 
     private static Transform FindChildRecursive(Transform root, string childName)

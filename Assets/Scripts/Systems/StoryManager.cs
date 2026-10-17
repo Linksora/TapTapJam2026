@@ -1,19 +1,20 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
 /// 关卡剧情总控（阶段状态机）：
-/// 1) 对话阶段：谁说话，world 里同名角色立绘就出现在对话框对面；主角内心独白时立绘隐藏；
-/// 2) 搜证阶段（对话行配了 SearchClueIDs）：关闭对话框、隐藏角色，玩家自由点场景取证，
+/// 1) 对话阶段：对话对象持续在场，轮到主角说话时仍保留对方；
+/// 2) 搜证阶段（对话行配了 SearchClueIDs）：隐藏对话内容与对手，保留主角，自由点场景取证，
 ///    物品栏集齐所需线索后自动跳到 NextTarget 推进剧情；
-/// 3) 质询阶段（Q_ 题且 Options 为空）：目标角色沉默在场、不弹对话框，
-///    玩家把背包证物拖到角色身上——拖错播对方台词后回到沉默等待，拖对进入质询结果；
+/// 3) 质询阶段（Q_ 题且 Options 为空）：对话框里的 Character 沉默在场，
+///    玩家把笔记本证物拖到立绘或对话区域，拖错回应后回到等待，拖对进入结果；
 /// 4) 有 Options 的 Q_ 题仍是拼凑选择题：选项判定、发线索、错误回流；
 /// 5) 对话选项里的 "PRESENT:角色ID" 仍可作为点选式出示的备用入口。
 /// </summary>
-public sealed class StoryManager : MonoBehaviour
+public sealed partial class StoryManager : MonoBehaviour
 {
     private const string DefaultLevelId = "Level_01";
     private const string PresentPrefix = "PRESENT:";
@@ -26,17 +27,29 @@ public sealed class StoryManager : MonoBehaviour
     private InventoryManager inventory;
     private BackgroundController background;
     private OpponentStage opponents;
+    private SearchStage searchStage;
+    private NotebookPanel notebook;
 
     private string pendingNextTarget;
     private string currentDialogueId;
     private string waitQuestionId;
+    private bool inConfrontationWait;
+    private float dialogueHoldUntil;
 
     // 搜证阶段状态
     private bool inSearchPhase;
     private HashSet<string> searchRequiredClues;
+    private HashSet<string> searchAvailableClues;
     private string searchCompleteTarget;
 
     public string LevelId { get; private set; }
+    public bool IsSearching => inSearchPhase;
+
+    public ItemData GetClue(string clueId) => database != null ? database.GetClue(clueId) : null;
+
+    // 必需证据决定剧情推进；可选证据在同一搜证阶段也可以收集。
+    public bool CanCollectClue(string clueId) => inSearchPhase && searchAvailableClues != null
+        && searchAvailableClues.Contains(clueId);
 
     private void Start()
     {
@@ -84,7 +97,9 @@ public sealed class StoryManager : MonoBehaviour
             background = gameObject.AddComponent<BackgroundController>();
         }
 
-        opponents = OpponentStage.Ensure();
+        opponents = OpponentStage.Ensure(database.CharacterIds);
+        searchStage = GetComponent<SearchStage>();
+        if (searchStage == null) searchStage = gameObject.AddComponent<SearchStage>();
 
         if (playOnStart)
         {
@@ -109,6 +124,20 @@ public sealed class StoryManager : MonoBehaviour
             return;
         }
 
+        // 等待态只判定当前质询题，避免被同角色其他题目提前判成功。
+        if (inConfrontationWait)
+        {
+            QuestionData current = database.GetQuestion(waitQuestionId);
+            if (current == null || database.GetInterrogationCharacterId(current) != characterId) return;
+            bool correct = current.TargetClue != null && current.TargetClue.ItemId == clue.ItemId;
+            if (correct && current.SuccessClue != null && inventory != null)
+                inventory.AddItem(current.SuccessClue);
+            if (correct) CloseNotebookAfterConfrontation();
+            string target = correct ? current.SuccessTarget : current.GetWrongTarget(clue.ItemId);
+            Goto(string.IsNullOrEmpty(target) && !correct ? waitQuestionId : target);
+            return;
+        }
+
         QuestionData matched = database.FindInterrogation(characterId, clue);
         if (matched != null)
         {
@@ -118,6 +147,7 @@ public sealed class StoryManager : MonoBehaviour
             }
 
             waitQuestionId = null;
+            CloseNotebookAfterConfrontation();
             Goto(matched.SuccessTarget);
             return;
         }
@@ -147,7 +177,8 @@ public sealed class StoryManager : MonoBehaviour
 
     private void OnBoxClicked()
     {
-        if (!dialogueBox.IsShowing || dialogueBox.IsShowingOptions)
+        if (Time.unscaledTime < dialogueHoldUntil) return;
+        if (inConfrontationWait || !dialogueBox.IsShowing || dialogueBox.IsShowingOptions)
         {
             return;
         }
@@ -155,11 +186,25 @@ public sealed class StoryManager : MonoBehaviour
         Goto(pendingNextTarget);
     }
 
-    private void Goto(string targetId)
+    private void CloseNotebookAfterConfrontation()
     {
+        if (notebook == null) notebook = FindAnyObjectByType<NotebookPanel>();
+        if (notebook != null) notebook.Close();
+    }
+
+    private void Goto(string targetId, HashSet<string> transitions = null)
+    {
+        if (targetId == "RETURN_SEARCH") { FinishInspection(); return; }
+        inConfrontationWait = false;
+        dialogueBox.StopWaitingForEvidence();
         // 任何跳转都先退出搜证等待态；进入搜证节点时会重新置位。
         inSearchPhase = false;
+        // 搜证节点 ID 仅在搜证阶段有效；清空后旧世界物品不会再匹配该阶段的规则。
+        currentSearchId = null;
         searchRequiredClues = null;
+        searchAvailableClues = null;
+        searchStage?.EndSearch();
+        navigator?.End();
 
         if (string.IsNullOrEmpty(targetId) || targetId == "-1")
         {
@@ -171,8 +216,11 @@ public sealed class StoryManager : MonoBehaviour
             return;
         }
 
+        if (targetId.StartsWith("B_")) { ShowDeduction(targetId); return; }
+
         if (targetId.StartsWith("Q_"))
         {
+            GameAudio.Instance.EnterStoryNode(LevelId, targetId);
             ShowQuestion(targetId);
             return;
         }
@@ -188,10 +236,24 @@ public sealed class StoryManager : MonoBehaviour
             return;
         }
 
+        Debug.Log($"[StoryManager:{LevelId}] 加载对话 {targetId}：speaker='{dialogue.Speaker}'，text='{dialogue.Text}'，next='{dialogue.NextTarget}'。", dialogue);
+
         currentDialogueId = targetId;
+        GameAudio.Instance.EnterStoryNode(LevelId, targetId);
+
+        if (!string.IsNullOrWhiteSpace(dialogue.ConditionGroup)
+            && GetStatementChoice(dialogue.ConditionGroup, dialogue.ConditionStatement) == dialogue.ConditionValue)
+        { Goto(dialogue.AlternateTarget, transitions); return; }
+        if (!string.IsNullOrWhiteSpace(dialogue.MainCharacters))
+            dialogueBox.SetMainCharacters(dialogue.MainCharacters.Split('|'));
+        if (dialogue.RewardClue != null) inventory?.AddItem(dialogue.RewardClue);
+        if (!string.IsNullOrWhiteSpace(dialogue.StageAction))
+            StorySceneCast.Run(dialogue.StageAction, background, gameObject);
 
         if (!string.IsNullOrEmpty(dialogue.Background))
         {
+            if (background != null && dialogue.Background != background.CurrentBackground)
+                dialogueBox.ClearConversationPartner();
             background?.Show(dialogue.Background);
         }
 
@@ -201,14 +263,30 @@ public sealed class StoryManager : MonoBehaviour
             return;
         }
 
+        // 玩法/剧本切换标记不作为台词显示，也不额外等待一次点击。
+        if (dialogue.IsTransition)
+        {
+            transitions ??= new HashSet<string>();
+            if (!transitions.Add(targetId))
+            {
+                Debug.LogError($"[StoryManager:{LevelId}] 剧本切换节点形成循环：{targetId}");
+                dialogueBox.Hide();
+                pendingNextTarget = null;
+                return;
+            }
+            Goto(dialogue.NextTarget, transitions);
+            return;
+        }
+
         ShowDialogueLine(dialogue);
+        Debug.Log($"[StoryManager:{LevelId}] 已显示对话 {targetId}。", dialogueBox);
     }
 
     /// <summary>普通对话行：更新对手舞台和 Character，MainCharacter 保持当前主角。</summary>
     private void ShowDialogueLine(DialogueData dialogue)
     {
+        dialogueHoldUntil = Time.unscaledTime + dialogue.HoldSeconds;
         waitQuestionId = null;
-        opponents.Show(dialogue.Speaker);
         Sprite portrait = dialogue.Speaker == dialogueBox.CurrentMainCharacterId ? null
             : PortraitLoader.Load(string.IsNullOrWhiteSpace(dialogue.PortraitPath)
                 ? dialogue.Speaker : dialogue.PortraitPath);
@@ -235,30 +313,32 @@ public sealed class StoryManager : MonoBehaviour
         else
         {
             pendingNextTarget = dialogue.NextTarget;
-            dialogueBox.Show(dialogue.Speaker, dialogue.Text, portrait);
+            dialogueBox.Show(dialogue.Speaker == "系统" || dialogue.Speaker == "旁白" ? string.Empty : dialogue.Speaker, dialogue.Text, portrait);
         }
+
+        opponents.Show(dialogueBox.ConversationPartnerId);
     }
 
     /// <summary>
-    /// 搜证阶段：关对话框、隐藏角色，留在场景里等玩家点 WorldItem；
+    /// 搜证阶段：隐藏对话内容和对手，留在场景里等玩家点 WorldItem；
     /// 所需线索可能已在包里（题目奖励、重复进入），立即完成。
     /// </summary>
     private void BeginSearchPhase(DialogueData dialogue)
     {
+        currentSearchId = dialogue.DialogueId;
         searchRequiredClues = new HashSet<string>(dialogue.SearchClueIds);
+        searchAvailableClues = new HashSet<string>(dialogue.SearchClueIds);
+        searchAvailableClues.UnionWith(dialogue.OptionalClueIds);
         searchCompleteTarget = dialogue.NextTarget;
         waitQuestionId = null;
 
         dialogueBox.Hide();
         opponents.HideAll();
 
-        if (HasAllSearchClues())
-        {
-            Goto(searchCompleteTarget);
-            return;
-        }
-
         inSearchPhase = true;
+        BeginNavigation(dialogue);
+        searchStage.BeginSearch(dialogue, database, inventory);
+        if (HasAllSearchClues()) CompleteSearch();
     }
 
     private bool HasAllSearchClues()
@@ -273,15 +353,8 @@ public sealed class StoryManager : MonoBehaviour
             return false;
         }
 
-        foreach (ItemData item in inventory.Items)
-        {
-            if (item != null && searchRequiredClues.Contains(item.ItemId))
-            {
-                searchRequiredClues.Remove(item.ItemId);
-            }
-        }
-
-        return searchRequiredClues.Count == 0;
+        return searchRequiredClues.All(requiredId =>
+            inventory.Items.Any(item => item != null && item.ItemId == requiredId));
     }
 
     private void OnInventoryChanged()
@@ -293,10 +366,7 @@ public sealed class StoryManager : MonoBehaviour
 
         if (HasAllSearchClues())
         {
-            string target = searchCompleteTarget;
-            inSearchPhase = false;
-            searchRequiredClues = null;
-            Goto(target);
+            CompleteSearch();
         }
     }
 
@@ -359,9 +429,10 @@ public sealed class StoryManager : MonoBehaviour
             return;
         }
 
-        // 拼凑选填题：题干里的 {0} 用空位代替，选项纵向列出。
+        // 独立拼凑题不延续上一段交谈对象，选项使用场景中的 Options。
         waitQuestionId = null;
         opponents.HideAll();
+        dialogueBox.ClearConversationPartner();
 
         var options = new List<(string text, System.Action onClick)>(question.Options.Count);
         for (int i = 0; i < question.Options.Count; i++)
@@ -373,21 +444,26 @@ public sealed class StoryManager : MonoBehaviour
         dialogueBox.Show(dialogueBox.CurrentMainCharacterId, question.Statement.Replace("{0}", "______"), null, options.ToArray());
     }
 
-    /// <summary>质询等待态：对方立绘出现、沉默、对话框不弹，等玩家把证物拖到她身上。</summary>
+    /// <summary>质询等待态：沿用对话 UI，对方沉默，等待笔记本里的证物。</summary>
     private void EnterConfrontationWait(string questionId, QuestionData question)
     {
-        string who = string.IsNullOrEmpty(question.CharacterId) ? string.Empty : question.CharacterId;
-
-        bool shown = opponents.Show(who);
-        if (!shown)
+        string who = database.GetInterrogationCharacterId(question);
+        if (string.IsNullOrWhiteSpace(who))
         {
-            Debug.LogWarning($"[StoryManager:{LevelId}] 质询题 {questionId} 的角色“{who}”" +
-                             "在 world 下找不到同名立绘物体，拖拽面质无法进行。");
+            Debug.LogError($"[StoryManager:{LevelId}] 质询题 {questionId} 缺少 CharacterID，请重新导入关卡 CSV。");
+            dialogueBox.Hide();
+            waitQuestionId = null;
+            return;
         }
 
-        dialogueBox.Hide();
+        opponents.HideAll();
         waitQuestionId = questionId;
-        opponents.SetDropArmed(true, clue => StartConfrontation(who, clue));
+        inConfrontationWait = true;
+        string portraitPath = string.IsNullOrWhiteSpace(question.HesitantPortraitPath)
+            ? who : question.HesitantPortraitPath;
+        dialogueBox.ShowConfrontation(who, PortraitLoader.Load(portraitPath),
+            clue => StartConfrontation(who, clue));
+        searchStage.ShowFeedback(question.Statement);
     }
 
     private void AnswerAssembly(QuestionData question, int chosenIndex)

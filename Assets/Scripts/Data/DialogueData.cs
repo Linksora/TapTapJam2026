@@ -18,6 +18,26 @@ public sealed class DialogueData : ScriptableObject
     [SerializeField] private string nextTarget;
     [SerializeField] private string background;
     [SerializeField] private string[] searchClueIds;
+    [SerializeField] private string[] optionalClueIds;
+    [SerializeField] private bool isTransition;
+    [SerializeField] private ItemData rewardClue;
+    [SerializeField] private string mainCharacters;
+    [SerializeField] private string conditionGroup;
+    [SerializeField] private string conditionStatement;
+    [SerializeField] private string conditionValue;
+    [SerializeField] private string alternateTarget;
+    [SerializeField] private string searchStartZone;
+    [SerializeField] private string stageAction;
+    public string SearchStartZone => searchStartZone;
+    public string StageAction => stageAction;
+    [SerializeField] private float holdSeconds;
+    public float HoldSeconds => holdSeconds;
+    public ItemData RewardClue => rewardClue;
+    public string MainCharacters => mainCharacters;
+    public string ConditionGroup => conditionGroup;
+    public string ConditionStatement => conditionStatement;
+    public string ConditionValue => conditionValue;
+    public string AlternateTarget => alternateTarget;
 
     public string DialogueId => dialogueId;
     public ItemData EntryClue => entryClue;
@@ -29,15 +49,17 @@ public sealed class DialogueData : ScriptableObject
     public string Option2Text => option2Text;
     public string Option2Target => option2Target;
     public string NextTarget => nextTarget;
+    // 兼容尚未重新导入的旧剧本标记。
+    public bool IsTransition => isTransition || speaker?.Trim() == "【玩法】";
 
-    /// <summary>非空时切换场景背景，值为 Resources/Art/场景 下的贴图名（不带扩展名）。</summary>
+    /// <summary>非空时切换背景分组，值为 BackgroundController 中的 Id 或别名；旧场景仍可使用贴图名。</summary>
     public string Background => background;
 
     /// <summary>
-    /// 非空时本行是搜证节点：关闭对话框与对手立绘，玩家集齐这些线索（竖线分隔的 ClueID）后，
-    /// 自动跳转到 NextTarget 继续剧情。
+    /// 非空时本行是搜证节点：隐藏对话框，允许收集必需及可选线索；集齐必需线索后由玩家点击整理按钮继续。
     /// </summary>
     public string[] SearchClueIds => searchClueIds ?? System.Array.Empty<string>();
+    public string[] OptionalClueIds => optionalClueIds ?? System.Array.Empty<string>();
 
     public bool HasOptions => !string.IsNullOrEmpty(option1Text) || !string.IsNullOrEmpty(option2Text);
 }
