@@ -16,8 +16,7 @@ public sealed class ClueDetailPanel : MonoBehaviour
 
     private void Awake()
     {
-        Font chineseFont = Font.CreateDynamicFontFromOSFont(
-            new[] { "PingFang SC", "Microsoft YaHei", "SimHei", "Arial" }, 30);
+        Font chineseFont = GameFont.Primary;
         if (chineseFont != null)
         {
             if (itemNameText != null) itemNameText.font = chineseFont;

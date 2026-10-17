@@ -110,7 +110,7 @@ public static class Demo01SceneBuilder
         SetRect(textRect, Vector2.zero, Vector2.one, new Vector2(36f, 18f), new Vector2(-36f, -18f));
         Text text = textObject.AddComponent<Text>();
         text.text = "把背包物品拖到小毛身上试试";
-        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        text.font = GameFont.Primary;
         text.fontSize = 34;
         text.alignment = TextAnchor.MiddleLeft;
         text.color = new Color(0.96f, 0.92f, 0.78f);

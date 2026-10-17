@@ -18,12 +18,11 @@ public sealed class HoldButton : MonoBehaviour, IPointerDownHandler, IPointerUpH
     {
         cachedButton = GetComponent<Button>();
 
-        // 与对话 UI 一致：换用系统中文字体，保证箭头/特殊符号有字形。
+        // 与对话 UI 一致，使用项目统一字体。
         Text label = GetComponentInChildren<Text>();
         if (label != null)
         {
-            Font font = Font.CreateDynamicFontFromOSFont(
-                new[] { "PingFang SC", "Microsoft YaHei", "SimHei", "Arial" }, 32);
+            Font font = GameFont.Primary;
             if (font != null)
             {
                 label.font = font;
