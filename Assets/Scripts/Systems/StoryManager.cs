@@ -205,7 +205,6 @@ public sealed partial class StoryManager : MonoBehaviour
         currentSearchId = null;
         searchRequiredClues = null;
         searchAvailableClues = null;
-        searchStage?.EndSearch();
         navigator?.End();
 
         if (string.IsNullOrEmpty(targetId) || targetId == "-1")
@@ -250,7 +249,7 @@ public sealed partial class StoryManager : MonoBehaviour
             dialogueBox.SetMainCharacters(dialogue.MainCharacters.Split('|'));
         if (dialogue.RewardClue != null) inventory?.AddItem(dialogue.RewardClue);
         if (!string.IsNullOrWhiteSpace(dialogue.StageAction))
-            StorySceneCast.Run(dialogue.StageAction, background, gameObject);
+            StorySceneCast.Run(dialogue.StageAction, gameObject);
 
         if (!string.IsNullOrEmpty(dialogue.Background))
         {
@@ -355,6 +354,14 @@ public sealed partial class StoryManager : MonoBehaviour
 
     private bool HasAllSearchClues()
     {
+        if (currentSearchId == "D_501")
+        {
+            if (inventory == null) return false;
+            string[] confrontationClues = { "ST07", "ST02", "ST05", "ST04", "ST03" };
+            return confrontationClues.All(requiredId =>
+                inventory.Items.Any(item => item != null && item.ItemId == requiredId));
+        }
+
         if (searchRequiredClues == null || searchRequiredClues.Count == 0)
         {
             return true;
@@ -371,7 +378,9 @@ public sealed partial class StoryManager : MonoBehaviour
 
     private void OnInventoryChanged()
     {
-        if (!inSearchPhase)
+        // FinishInspection owns the final clue transition. Don't complete the
+        // search re-entrantly while it is adding that clue and showing its receipt.
+        if (!inSearchPhase || !string.IsNullOrEmpty(inspectionSearchId))
         {
             return;
         }
@@ -473,9 +482,8 @@ public sealed partial class StoryManager : MonoBehaviour
         inConfrontationWait = true;
         string portraitPath = string.IsNullOrWhiteSpace(question.HesitantPortraitPath)
             ? who : question.HesitantPortraitPath;
-        dialogueBox.ShowConfrontation(who, PortraitLoader.Load(portraitPath),
+        dialogueBox.ShowConfrontation(who, PortraitLoader.Load(portraitPath), question.Statement,
             clue => StartConfrontation(who, clue));
-        searchStage.ShowFeedback(question.Statement);
     }
 
     private void AnswerAssembly(QuestionData question, int chosenIndex)

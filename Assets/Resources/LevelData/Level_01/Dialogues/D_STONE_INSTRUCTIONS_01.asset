@@ -16,12 +16,12 @@ MonoBehaviour:
   entryClue: {fileID: 0}
   speaker: "\u5C0F\u6BDB"
   text: "\u5148\u6574\u7406\u3002\u522B\u628A\u731C\u7684\u5199\u6210\u5DF2\u7ECF\u77E5\u9053\u7684\u3002"
-  portraitPath: 
-  option1Text: 
-  option1Target: 
+  portraitPath: "\u5C0F\u6BDB"
+  option1Text: "\u6574\u7406\u7EBF\u7D22"
+  option1Target: D_STONE_INSTRUCTIONS_02
   option2Text: 
   option2Target: 
-  nextTarget: D_STONE_INSTRUCTIONS_02
+  nextTarget: 
   background: 
   searchClueIds: []
   optionalClueIds: []

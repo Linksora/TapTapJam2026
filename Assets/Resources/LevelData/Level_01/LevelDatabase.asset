@@ -305,7 +305,7 @@ MonoBehaviour:
     clueId: ST03
     dialogueId: D_ST03_01
     requiredCharacter: "\u5C0F\u72D7"
-  - worldPath: "\u8857\u9053/\u6559\u5BA4\u5E03\u7F6E\u56FE"
+  - worldPath: "\u8857\u9053/\u73ED\u7EA7\u901A\u77E5\u677F"
     searchNodeId: D_501
     clueId: ST04
     dialogueId: D_ST04_01

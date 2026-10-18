@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: B_Truth
   m_EditorClassIdentifier: Assembly-CSharp::DeductionData
   groupId: B_Truth
-  title: "\u56DB\u6B21\u8D28\u8BE2\u5DF2\u5B8C\u6210\u3002\u6839\u636E\u8865\u5145\u8BC1\u8BCD\u4FEE\u6539\u5173\u952E\u8BCD\uFF1B\u539F\u9009\u8BCD\u4F1A\u4FDD\u7559\uFF0C\u9519\u8BEF\u884C\u6807\u4E3A\u201C\u5C1A\u6709\u77DB\u76FE\u201D\u3002"
+  title: 
   confirmText: "\u786E\u8BA4\u771F\u76F8"
   nextTarget: D_TRUTH_01
   mode: Truth
