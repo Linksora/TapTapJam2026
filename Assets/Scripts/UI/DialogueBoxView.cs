@@ -174,6 +174,7 @@ public sealed class DialogueBoxView : MonoBehaviour
         if (mainCharacters.Count == 0) mainCharacters.Add(new MainCharacterEntry());
         currentMainCharacterIndex = Mathf.Max(0, mainCharacters.FindIndex(entry => entry.characterId == current));
         RefreshMainCharacter(); RefreshCharacter();
+        MainCharacterChanged?.Invoke(CurrentMainCharacterId);
     }
 
     public void SelectMainCharacter(string id)
