@@ -71,6 +71,9 @@ public sealed class ScenePanner : MonoBehaviour
         if (NavigationMode)
         {
             IsMoving = false;
+            dampVelocity = 0f;
+            if (keyLeftVisual) ReflectKeyVisual(leftHoldButton, false, ref keyLeftVisual);
+            if (keyRightVisual) ReflectKeyVisual(rightHoldButton, false, ref keyRightVisual);
             return;
         }
 
