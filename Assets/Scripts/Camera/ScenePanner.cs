@@ -35,6 +35,8 @@ public sealed class ScenePanner : MonoBehaviour
     private bool keyLeftVisual;
     private bool keyRightVisual;
     public bool NavigationMode { get; set; }
+    /// <summary>True while an input is moving the camera within the current background.</summary>
+    public bool IsMoving { get; private set; }
 
     private void Awake()
     {
@@ -66,7 +68,11 @@ public sealed class ScenePanner : MonoBehaviour
             || targetCamera.aspect != lastAspect || edgePadding != lastEdgePadding))
             RefreshBounds();
 
-        if (NavigationMode) return;
+        if (NavigationMode)
+        {
+            IsMoving = false;
+            return;
+        }
 
         ResolveButtons();
 
@@ -93,13 +99,16 @@ public sealed class ScenePanner : MonoBehaviour
 
         Vector3 position = transform.position;
         float targetX = Clamp(position.x + direction * moveSpeed * Time.deltaTime);
+        float previousX = position.x;
         position.x = Mathf.SmoothDamp(position.x, targetX, ref dampVelocity, smoothTime);
         position.x = Clamp(position.x);
         transform.position = position;
+        IsMoving = !Mathf.Approximately(previousX, position.x);
     }
 
     private void OnDisable()
     {
+        IsMoving = false;
         // 组件被停用时恢复按钮视觉，避免按钮卡在 Pressed 状态。
         if (keyLeftVisual)
         {
