@@ -44,6 +44,7 @@ public sealed partial class StoryManager : MonoBehaviour
 
     public string LevelId { get; private set; }
     public bool IsSearching => inSearchPhase;
+    public bool CanShowInvestigationCursor => inSearchPhase || inConfrontationWait;
 
     public ItemData GetClue(string clueId) => database != null ? database.GetClue(clueId) : null;
 
@@ -199,11 +200,11 @@ public sealed partial class StoryManager : MonoBehaviour
         dialogueBox.StopWaitingForEvidence();
         // 任何跳转都先退出搜证等待态；进入搜证节点时会重新置位。
         inSearchPhase = false;
+        SetScenePanningEnabled(false);
         // 搜证节点 ID 仅在搜证阶段有效；清空后旧世界物品不会再匹配该阶段的规则。
         currentSearchId = null;
         searchRequiredClues = null;
         searchAvailableClues = null;
-        searchStage?.EndSearch();
         navigator?.End();
 
         if (string.IsNullOrEmpty(targetId) || targetId == "-1")
@@ -248,7 +249,7 @@ public sealed partial class StoryManager : MonoBehaviour
             dialogueBox.SetMainCharacters(dialogue.MainCharacters.Split('|'));
         if (dialogue.RewardClue != null) inventory?.AddItem(dialogue.RewardClue);
         if (!string.IsNullOrWhiteSpace(dialogue.StageAction))
-            StorySceneCast.Run(dialogue.StageAction, background, gameObject);
+            StorySceneCast.Run(dialogue.StageAction, gameObject);
 
         if (!string.IsNullOrEmpty(dialogue.Background))
         {
@@ -336,13 +337,31 @@ public sealed partial class StoryManager : MonoBehaviour
         opponents.HideAll();
 
         inSearchPhase = true;
+        SetScenePanningEnabled(true);
         BeginNavigation(dialogue);
         searchStage.BeginSearch(dialogue, database, inventory);
         if (HasAllSearchClues()) CompleteSearch();
     }
 
+    private void SetScenePanningEnabled(bool enabled)
+    {
+        foreach (ScenePanner panner in FindObjectsByType<ScenePanner>(FindObjectsInactive.Include))
+        {
+            if (panner.gameObject.scene == gameObject.scene)
+                panner.NavigationMode = !enabled;
+        }
+    }
+
     private bool HasAllSearchClues()
     {
+        if (currentSearchId == "D_501")
+        {
+            if (inventory == null) return false;
+            string[] confrontationClues = { "ST07", "ST02", "ST05", "ST04", "ST03" };
+            return confrontationClues.All(requiredId =>
+                inventory.Items.Any(item => item != null && item.ItemId == requiredId));
+        }
+
         if (searchRequiredClues == null || searchRequiredClues.Count == 0)
         {
             return true;
@@ -359,7 +378,9 @@ public sealed partial class StoryManager : MonoBehaviour
 
     private void OnInventoryChanged()
     {
-        if (!inSearchPhase)
+        // FinishInspection owns the final clue transition. Don't complete the
+        // search re-entrantly while it is adding that clue and showing its receipt.
+        if (!inSearchPhase || !string.IsNullOrEmpty(inspectionSearchId))
         {
             return;
         }
@@ -461,9 +482,8 @@ public sealed partial class StoryManager : MonoBehaviour
         inConfrontationWait = true;
         string portraitPath = string.IsNullOrWhiteSpace(question.HesitantPortraitPath)
             ? who : question.HesitantPortraitPath;
-        dialogueBox.ShowConfrontation(who, PortraitLoader.Load(portraitPath),
+        dialogueBox.ShowConfrontation(who, PortraitLoader.Load(portraitPath), question.Statement,
             clue => StartConfrontation(who, clue));
-        searchStage.ShowFeedback(question.Statement);
     }
 
     private void AnswerAssembly(QuestionData question, int chosenIndex)

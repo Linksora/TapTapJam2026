@@ -56,7 +56,7 @@ public sealed class DialogueData : ScriptableObject
     public string Background => background;
 
     /// <summary>
-    /// 非空时本行是搜证节点：隐藏对话框，允许收集必需及可选线索；集齐必需线索后由玩家点击整理按钮继续。
+    /// 非空时本行是搜证节点：隐藏对话框，允许收集必需及可选线索；集齐必需线索后自动跳转。
     /// </summary>
     public string[] SearchClueIds => searchClueIds ?? System.Array.Empty<string>();
     public string[] OptionalClueIds => optionalClueIds ?? System.Array.Empty<string>();

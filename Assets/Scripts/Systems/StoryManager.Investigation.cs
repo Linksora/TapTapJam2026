@@ -18,7 +18,16 @@ public sealed partial class StoryManager
     private WorldInteractionData FindInteraction(WorldItem item)
     {
         if (database == null || string.IsNullOrEmpty(currentSearchId)) return null;
-        return database.WorldInteractions.FirstOrDefault(rule => rule.worldPath == item.WorldPath && rule.searchNodeId == currentSearchId);
+        var matches = database.WorldInteractions
+            .Where(rule => rule.worldPath == item.WorldPath && rule.searchNodeId == currentSearchId)
+            .ToArray();
+
+        // One world object can represent more than one clue. Prefer the next
+        // uncollected interaction, then keep a collected match so TryInspect
+        // can suppress the click instead of falling back to generic pickup.
+        return matches.FirstOrDefault(rule =>
+                   inventory == null || !inventory.Items.Any(clue => clue != null && clue.ItemId == rule.clueId))
+               ?? matches.FirstOrDefault();
     }
 
     public bool ShouldInspectBeforeTravel(GameObject target)
@@ -38,10 +47,12 @@ public sealed partial class StoryManager
             return true;
         }
         bool collected = inventory.Items.Any(clue => clue.ItemId == rule.clueId);
-        if (collected && item.GetComponent<BackgroundSwitch>() != null) return true;
+        // The same clue may be exposed by multiple world objects or search phases.
+        // Once it is in the notebook, don't replay its inspection dialogue.
+        if (collected) return true;
         if (!string.IsNullOrEmpty(rule.requiredCharacter) && dialogueBox.CurrentMainCharacterId != rule.requiredCharacter)
         {
-            searchStage.ShowFeedback($"这个调查点需要{rule.requiredCharacter}。点击主角头像旁的箭头切换角色。");
+            ShowSearchNarration($"这个调查点需要{rule.requiredCharacter}。点击主角头像旁的箭头切换角色。");
             return true;
         }
         inspectionSearchId = currentSearchId;
@@ -55,18 +66,38 @@ public sealed partial class StoryManager
     {
         string phase = inspectionSearchId;
         string clue = inspectionClueId;
-        inspectionSearchId = inspectionClueId = null;
-        if (string.IsNullOrEmpty(phase)) return;
+        if (string.IsNullOrEmpty(phase))
+        {
+            inspectionSearchId = inspectionClueId = null;
+            return;
+        }
+
         ItemData recorded = string.IsNullOrEmpty(clue) ? null : database.GetClue(clue);
         if (recorded != null) inventory.AddItem(recorded);
+        inspectionSearchId = inspectionClueId = null;
         if (recorded != null)
         {
             DialogueData searchDialogue = database.GetDialogue(phase);
             string[] required = searchDialogue != null ? searchDialogue.SearchClueIds : System.Array.Empty<string>();
-            bool allCollected = required.Length > 0 && required.All(id =>
-                inventory.Items.Any(item => item != null && item.ItemId == id));
+            bool allCollected = phase == currentSearchId
+                ? HasAllSearchClues()
+                : required.Length > 0 && required.All(id =>
+                    inventory.Items.Any(item => item != null && item.ItemId == id));
+            // Pause world controls while the evidence receipt and any follow-up
+            // line are on screen. The next search node re-enables navigation.
+            inSearchPhase = false;
+            SetScenePanningEnabled(false);
+            navigator?.End();
+            if (allCollected)
+            {
+                dialogueBox.SelectMainCharacter("小毛");
+                if (phase == "D_501") background?.Show("学校侧院");
+            }
             pendingNextTarget = allCollected && !string.IsNullOrEmpty(searchCompleteTarget)
-                ? searchCompleteTarget : phase;
+                ? searchCompleteTarget
+                : phase == "D_501" && clue == "ST07"
+                    ? "D_ST07_INCOMPLETE_01"
+                    : phase;
             int collectedCount = required.Count(id =>
                 inventory.Items.Any(item => item != null && item.ItemId == id));
             Debug.Log($"[StoryManager:{LevelId}] 证据 {clue} 已入册；搜证 {phase} 必需线索 {collectedCount}/{required.Length}，继续节点 {pendingNextTarget}。", this);
@@ -76,16 +107,21 @@ public sealed partial class StoryManager
         Goto(phase);
     }
 
+    private void ShowSearchNarration(string text)
+    {
+        string resumeSearch = currentSearchId;
+        inSearchPhase = false;
+        SetScenePanningEnabled(false);
+        pendingNextTarget = resumeSearch;
+        dialogueBox.Show(string.Empty, text);
+    }
+
     public void CompleteSearch()
     {
         if (!inSearchPhase || !HasAllSearchClues()) return;
         Debug.Log($"[StoryManager:{LevelId}] 必需证据已收齐，搜证节点 {currentSearchId} 推进到 {searchCompleteTarget}。", this);
         dialogueBox.SelectMainCharacter("小毛");
-        if (currentSearchId == "D_501")
-        {
-            background.Show("学校侧院");
-            StorySceneCast.ShowYard(background.CurrentRoot, true);
-        }
+        if (currentSearchId == "D_501") background.Show("学校侧院");
         Goto(searchCompleteTarget);
     }
 

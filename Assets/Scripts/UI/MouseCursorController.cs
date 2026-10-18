@@ -16,6 +16,7 @@ public sealed class MouseCursorController : MonoBehaviour
     private Canvas cursorCanvas;
     private DialogueBoxView dialogueBox;
     private ScenePanner scenePanner;
+    private StoryManager storyManager;
     private PointerEventData pointerEventData;
     private readonly List<RaycastResult> raycastResults = new();
     private string currentCharacter = "小毛";
@@ -82,8 +83,11 @@ public sealed class MouseCursorController : MonoBehaviour
     {
         if (worldCamera == null) worldCamera = Camera.main;
         if (scenePanner == null && worldCamera != null) scenePanner = worldCamera.GetComponent<ScenePanner>();
+        if (storyManager == null) storyManager = FindFirstObjectByType<StoryManager>();
         // Movement takes priority whether it came from the keyboard or a held on-screen arrow button.
         if (scenePanner != null && scenePanner.IsMoving) return CursorState.Move;
+        if (storyManager != null && storyManager.enabled && !storyManager.CanShowInvestigationCursor)
+            return CursorState.Normal;
 
         EventSystem eventSystem = EventSystem.current;
         if (eventSystem != null)

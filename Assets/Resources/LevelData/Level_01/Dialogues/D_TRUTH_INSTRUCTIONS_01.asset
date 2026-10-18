@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DialogueData
   dialogueId: D_TRUTH_INSTRUCTIONS_01
   entryClue: {fileID: 0}
-  speaker: "\u7CFB\u7EDF"
+  speaker: "\u65C1\u767D"
   text: "\u56DB\u6B21\u8D28\u8BE2\u5DF2\u5B8C\u6210\u3002\u73B0\u5728\u6839\u636E\u8865\u5145\u8BC1\u8BCD\uFF0C\u4FEE\u6539\u539F\u5148\u7684\u89E3\u91CA\u3002"
   portraitPath: 
   option1Text: 

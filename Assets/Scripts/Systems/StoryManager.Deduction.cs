@@ -57,7 +57,6 @@ public sealed partial class StoryManager
                 null, (activeDeduction.confirmText, () =>
                 {
                     activeDeduction = null;
-                    searchStage?.HideFeedback();
                     Goto(next);
                 }));
             return;
@@ -65,7 +64,8 @@ public sealed partial class StoryManager
 
         DeductionData.Statement statement = activeDeduction.statements[activeDeductionRow];
         string answer = string.IsNullOrEmpty(selected[activeDeductionRow]) ? "请选择" : selected[activeDeductionRow];
-        string title = activeDeductionRow == 0 ? activeDeduction.title + "\n" : string.Empty;
+        string title = activeDeductionRow == 0 && !string.IsNullOrWhiteSpace(activeDeduction.title)
+            ? activeDeduction.title + "\n" : string.Empty;
         string prompt = $"{title}（{activeDeductionRow + 1}/{activeDeduction.statements.Length}）\n"
             + statement.sentence.Replace("{0}", $"【{answer}】");
         if (deductionErrors[activeDeduction.groupId][activeDeductionRow])
@@ -138,18 +138,12 @@ public sealed partial class StoryManager
             if (errors.Any(error => error))
             {
                 RenderDeduction();
-                int wrong = Array.FindIndex(errors, error => error);
-                var row = activeDeduction.statements[wrong];
-                int option = Array.IndexOf(row.options, selected[wrong]);
-                string feedback = option >= 0 && option < row.wrongFeedback.Length ? row.wrongFeedback[option] : row.hint;
-                // 留在原题，逐行标记错误并保留全部已选内容。
-                searchStage?.ShowFeedback(string.IsNullOrEmpty(feedback) ? row.hint : feedback);
+                // 留在原题；逐行矛盾说明显示在 DialogueBox 内容里。
                 return;
             }
         }
         string next = activeDeduction.nextTarget;
         activeDeduction = null;
-        searchStage?.HideFeedback();
         Goto(next);
     }
 }
