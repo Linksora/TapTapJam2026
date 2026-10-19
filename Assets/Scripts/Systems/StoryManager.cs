@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
@@ -18,6 +19,7 @@ public sealed partial class StoryManager : MonoBehaviour
 {
     private const string DefaultLevelId = "Level_01";
     private const string PresentPrefix = "PRESENT:";
+    private const string ScenePrefix = "SCENE:";
 
     [SerializeField] private string overrideLevelId;
     [SerializeField] private bool playOnStart = true;
@@ -196,6 +198,18 @@ public sealed partial class StoryManager : MonoBehaviour
     private void Goto(string targetId, HashSet<string> transitions = null)
     {
         if (targetId == "RETURN_SEARCH") { FinishInspection(); return; }
+        if (!string.IsNullOrWhiteSpace(targetId) && targetId.StartsWith(ScenePrefix))
+        {
+            string sceneName = targetId[ScenePrefix.Length..].Trim();
+            if (string.IsNullOrEmpty(sceneName))
+            {
+                Debug.LogError($"[StoryManager:{LevelId}] 场景跳转目标为空：{targetId}");
+                return;
+            }
+
+            SceneManager.LoadScene(sceneName);
+            return;
+        }
         inConfrontationWait = false;
         dialogueBox.StopWaitingForEvidence();
         // 任何跳转都先退出搜证等待态；进入搜证节点时会重新置位。
@@ -234,6 +248,12 @@ public sealed partial class StoryManager : MonoBehaviour
             opponents.HideAll();
             pendingNextTarget = null;
             currentDialogueId = null;
+            return;
+        }
+
+        if (targetId == "D_ST07_INCOMPLETE_01")
+        {
+            ShowIncompleteSearchHint(dialogue);
             return;
         }
 
@@ -350,6 +370,28 @@ public sealed partial class StoryManager : MonoBehaviour
             if (panner.gameObject.scene == gameObject.scene)
                 panner.NavigationMode = !enabled;
         }
+    }
+
+    private void ShowIncompleteSearchHint(DialogueData dialogue)
+    {
+        currentDialogueId = dialogue.DialogueId;
+        GameAudio.Instance.EnterStoryNode(LevelId, dialogue.DialogueId);
+        string[] required = { "ST02", "ST05", "ST04", "ST03" };
+        string[] missing = required
+            .Where(id => inventory == null || !inventory.Items.Any(item => item != null && item.ItemId == id))
+            .Select(id => database.GetClue(id)?.ItemName ?? id)
+            .ToArray();
+        string text = dialogue.Text;
+        if (missing.Length > 0)
+            text += $"还缺少：{string.Join("、", missing)}。";
+
+        pendingNextTarget = null;
+        dialogueBox.SelectMainCharacter("小毛");
+        Sprite portrait = PortraitLoader.Load(string.IsNullOrWhiteSpace(dialogue.PortraitPath)
+            ? dialogue.Speaker : dialogue.PortraitPath);
+        dialogueBox.Show(dialogue.Speaker, text, portrait,
+            ("继续搜证", () => Goto("D_501")));
+        opponents.Show(dialogueBox.ConversationPartnerId);
     }
 
     private bool HasAllSearchClues()

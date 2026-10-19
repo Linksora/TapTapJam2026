@@ -21,7 +21,7 @@ MonoBehaviour:
   option1Target: 
   option2Text: 
   option2Target: 
-  nextTarget: -1
+  nextTarget: D_EPILOGUE_01
   background: 
   searchClueIds: []
   optionalClueIds: []
