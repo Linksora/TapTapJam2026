@@ -1,0 +1,7 @@
+QuestionID,StatementText,Options,CorrectOption,SuccessDialogueID,SuccessClueID,WrongDialogueID,WrongPortraitPath,HesitantPortraitPath,TargetClueID,CharacterID,WrongClueTargets
+Q_F1,质询 1/6｜风声与刮擦，有人躲着吗？出示验证声音来源的证据。,,-1,D_Q_F1_OK_01,FC1,D_Q_F1_WRONG_DEFAULT,小毛,蜂鸟,FL02,蜂鸟,FL01:D_Q_F1_WRONG_FL01|FL03:D_Q_F1_WRONG_FL03
+Q_F2,质询 2/6｜脚步是进店，还是经过？出示能区分经过与进入的证据。,,-1,D_Q_F2_OK_01,FC2,D_Q_F2_WRONG_DEFAULT,小毛,犀牛,FL04,犀牛,FL09:D_Q_F2_WRONG_FL09|FL05:D_Q_F2_WRONG_FL05
+Q_F3,质询 3/6｜递花后发生了什么？出示能够核对碰撞先后顺序的证据。,,-1,D_Q_F3_OK_01,FC3,D_Q_F3_WRONG_DEFAULT,小毛,天鹅,FL07,天鹅,FL06:D_Q_F3_WRONG_FL06|FL08:D_Q_F3_WRONG_FL08
+Q_F4,质询 4/6｜没有说明，还是没有读完？出示能核对是否没有告知的证据。,,-1,D_Q_F4_OK_01,FC4,D_Q_F4_WRONG_DEFAULT,小毛,守宫姐姐,FL10,守宫姐姐,FL01:D_Q_F4_WRONG_FL01|FL08:D_Q_F4_WRONG_FL08
+Q_F5,质询 5/6｜背她赶路，是什么关系？出示显示双方分别提供帮助的证据。,,-1,D_Q_F5_OK_01,FC5,D_Q_F5_WRONG_DEFAULT,小毛,犀牛,FL09,犀牛,FL08:D_Q_F5_WRONG_FL08|FL04:D_Q_F5_WRONG_FL04
+Q_F6,质询 6/6｜纸袋与忙碌，她没有说的是什么？出示与额外工作和纸袋有关的证据。,,-1,D_Q_F6_OK_01,FC6,D_Q_F6_WRONG_DEFAULT,小毛,守宫姐姐,FL12,守宫姐姐,FL11:D_Q_F6_WRONG_FL11|FL08:D_Q_F6_WRONG_FL08

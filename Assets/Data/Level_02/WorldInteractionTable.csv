@@ -1,0 +1,15 @@
+﻿WorldPath,SearchNodeID,ClueID,DialogueID,RequiredCharacter
+花店/后窗窗扣,D_FL_SEARCH_START,FL01,D_FL01_01,小毛
+花店/后间纸箱,D_FL_SEARCH_START,FL02,D_FL02_01,
+花店/柜台手机录音,D_FL_SEARCH_START,FL03,D_FL03_01,小毛
+花店侧巷/后门外台阶,D_FL_SEARCH_START,FL04,D_FL04_01,小毛
+花店/花架脚,D_FL_SEARCH_START,FL05,D_FL05_01,
+花店/展示框,D_FL_SEARCH_START,FL06,D_FL06_01,小毛
+花店/展示框,D_FL_SEARCH_START,FL07,D_FL07_01,小毛
+花店/柜台未取走的花束,D_FL_SEARCH_START,FL08,D_FL08_01,小毛
+花店/柜台文件夹,D_FL_SEARCH_START,FL09,D_FL09_01,小毛
+花店/蜂鸟手机,D_FL_SEARCH_START,FL10,D_FL10_01,小毛
+花店/边角料篮,D_FL_SEARCH_START,FL11,D_FL11_01,小毛
+花店/后间纸袋,D_FL_SEARCH_START,FL12,D_FL12_01,小毛
+花店/猫头鹰的墨镜,D_FL_SEARCH_START,OP_OwlGlasses,D_OP_OwlGlasses_01,小毛
+花店/完好的盆花,D_FL_SEARCH_START,OP_PottedFlower,D_OP_PottedFlower_01,小毛
