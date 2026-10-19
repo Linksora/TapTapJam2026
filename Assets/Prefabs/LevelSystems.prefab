@@ -1,0 +1,87 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &6587314020155606086
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2252227542360985005}
+  - component: {fileID: 6528419735299786056}
+  - component: {fileID: 1210141807687406686}
+  m_Layer: 0
+  m_Name: LevelSystems
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2252227542360985005
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6587314020155606086}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6528419735299786056
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6587314020155606086}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80f126f2371eb4a68878d9016ad8d721, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StoryManager
+  overrideLevelId: Level_01
+  playOnStart: 1
+--- !u!114 &1210141807687406686
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6587314020155606086}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c99d20072a4e4838872c3c6be2cad3b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BackgroundController
+  backgrounds:
+  - id: "\u4E8B\u52A1\u6240"
+    aliases:
+    - "\u4E8B\u52A1\u6240\u8349\u56FE"
+    root: {fileID: 0}
+    boundsRenderer: {fileID: 0}
+    audioBackground: "\u4E8B\u52A1\u6240\u8349\u56FE"
+  - id: "\u4FBF\u5229\u5E97"
+    aliases:
+    - "\u4FBF\u5229\u5E97\u8349\u56FE"
+    root: {fileID: 0}
+    boundsRenderer: {fileID: 0}
+    audioBackground: "\u4FBF\u5229\u5E97\u8349\u56FE"
+  - id: "\u8857\u9053"
+    aliases:
+    - "\u8857\u9053\u8349\u56FE"
+    root: {fileID: 0}
+    boundsRenderer: {fileID: 0}
+    audioBackground: "\u8857\u9053"
+  - id: "\u5B66\u6821\u4FA7\u9662"
+    aliases:
+    - "\u5B66\u6821\u4FA7\u9662\u8349\u56FE"
+    root: {fileID: 0}
+    boundsRenderer: {fileID: 0}
+    audioBackground: "\u5B66\u6821\u4FA7\u9662"
+  initialBackground: "\u4E8B\u52A1\u6240"
