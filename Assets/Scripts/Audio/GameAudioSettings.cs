@@ -14,6 +14,8 @@ public enum GameMusic
     [InspectorName("夜晚侦查")] NightInvestigation
 }
 
+public enum StorySoundAction { OneShot, StartLoop, StopLoop }
+
 [CreateAssetMenu(menuName = "TapJam/Audio Settings")]
 public sealed class GameAudioSettings : ScriptableObject
 {
@@ -66,9 +68,11 @@ public sealed class GameAudioSettings : ScriptableObject
     public sealed class StorySound
     {
         public string levelId = "Level_01";
-        [Tooltip("进入这个对话或问题节点时播放一次。")]
+        [Tooltip("进入这个对话或问题节点时执行。")]
         public string nodeId;
         public GameSound sound;
+        public StorySoundAction action;
+        [Min(0f)] public float fadeSeconds;
     }
 
     public Sound Find(GameSound id) => Array.Find(sounds, sound => sound != null && sound.id == id);

@@ -119,7 +119,7 @@ public sealed partial class StoryManager : MonoBehaviour
 
     /// <summary>
     /// 面质入口：质询等待态把证物拖到角色身上（或对话里点选出示）时调用。
-    /// 命中质询题（角色+TargetClue）→ 发放 SuccessClue 并进成功对话；
+    /// 命中质询题（角色+TargetClue）→ 升级旧证据或发放 SuccessClue，并进成功对话；
     /// 角色有质询题但证物不对 → 进错误回流对话；角色当前没有可面质内容 → 内心一句后回到等待态。
     /// </summary>
     public void StartConfrontation(string characterId, ItemData clue)
@@ -135,8 +135,7 @@ public sealed partial class StoryManager : MonoBehaviour
             QuestionData current = database.GetQuestion(waitQuestionId);
             if (current == null || database.GetInterrogationCharacterId(current) != characterId) return;
             bool correct = current.TargetClue != null && current.TargetClue.ItemId == clue.ItemId;
-            if (correct && current.SuccessClue != null && inventory != null)
-                inventory.AddItem(current.SuccessClue);
+            if (correct) AwardQuestionClue(current);
             if (correct) CloseNotebookAfterConfrontation();
             string target = correct ? current.SuccessTarget : current.GetWrongTarget(clue.ItemId);
             Goto(string.IsNullOrEmpty(target) && !correct ? waitQuestionId : target);
@@ -146,10 +145,7 @@ public sealed partial class StoryManager : MonoBehaviour
         QuestionData matched = database.FindInterrogation(characterId, clue);
         if (matched != null)
         {
-            if (matched.SuccessClue != null && inventory != null)
-            {
-                inventory.AddItem(matched.SuccessClue);
-            }
+            AwardQuestionClue(matched);
 
             waitQuestionId = null;
             CloseNotebookAfterConfrontation();
@@ -167,6 +163,18 @@ public sealed partial class StoryManager : MonoBehaviour
         // 这个角色当前没有配置任何面质：一句内心独白，点一下回到沉默等待继续拖。
         dialogueBox.Show(dialogueBox.CurrentMainCharacterId, $"（{clue.ItemName}和{characterId}应该没什么关系……）");
         pendingNextTarget = waitQuestionId;
+    }
+
+    private void AwardQuestionClue(QuestionData question)
+    {
+        if (question?.SuccessClue == null || inventory == null) return;
+        if (question.TargetClue != null && question.TargetClue.NextClue == question.SuccessClue)
+        {
+            if (!inventory.ReplaceItem(question.TargetClue, question.SuccessClue))
+                Debug.LogError($"[StoryManager:{LevelId}] 无法升级证据 {question.TargetClue.ItemId} → {question.SuccessClue.ItemId}。", this);
+            return;
+        }
+        inventory.AddItem(question.SuccessClue);
     }
 
     private string ResolveLevelId()
@@ -324,6 +332,11 @@ public sealed partial class StoryManager : MonoBehaviour
         dialogueHoldUntil = Time.unscaledTime + dialogue.HoldSeconds;
         waitQuestionId = null;
         bool narration = dialogue.Speaker == "系统" || dialogue.Speaker == "旁白";
+        // 与说话人同名的路径沿用当前表情；差分路径才切换主角立绘。
+        if (dialogue.Speaker == dialogueBox.CurrentMainCharacterId
+            && !string.IsNullOrWhiteSpace(dialogue.PortraitPath)
+            && dialogue.PortraitPath != dialogue.Speaker)
+            dialogueBox.SetMainCharacterPortrait(dialogue.Speaker, PortraitLoader.Load(dialogue.PortraitPath));
         Sprite portrait = narration || dialogue.Speaker == dialogueBox.CurrentMainCharacterId ? null
             : PortraitLoader.Load(string.IsNullOrWhiteSpace(dialogue.PortraitPath)
                 ? dialogue.Speaker : dialogue.PortraitPath);
@@ -600,10 +613,7 @@ public sealed partial class StoryManager : MonoBehaviour
     {
         if (chosenIndex == question.CorrectOption)
         {
-            if (question.SuccessClue != null && inventory != null)
-            {
-                inventory.AddItem(question.SuccessClue);
-            }
+            AwardQuestionClue(question);
 
             Goto(question.SuccessTarget);
         }

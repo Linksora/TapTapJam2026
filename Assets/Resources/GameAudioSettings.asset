@@ -18,61 +18,162 @@ MonoBehaviour:
   musicVolume: 0.4
   sounds:
   - id: 0
-    clip: {fileID: 0}
-    volume: 0.7
-    note: "通用：鼠标点击，可爱一些的音效"
+    clip: {fileID: 8300000, guid: 7f28a906b6a424ce0858efb74141afe1, type: 3}
+    volume: 0.35
+    note: 界面按钮：取音频开头一次点击
   - id: 1
-    clip: {fileID: 0}
-    volume: 0.7
-    note: "第一章：清脆的鸟鸣"
+    clip: {fileID: 8300000, guid: 063dec07401194c79a897de5711410c7, type: 3}
+    volume: 0.18
+    note: 鸟鸣和轻微街道声
   - id: 2
-    clip: {fileID: 0}
-    volume: 0.7
-    note: "第一章：微弱的街道声"
+    clip: {fileID: 8300000, guid: 063dec07401194c79a897de5711410c7, type: 3}
+    volume: 0.18
+    note: 鸟鸣和轻微街道声共用素材
   - id: 3
-    clip: {fileID: 0}
-    volume: 0.7
-    note: "第一章：开门声"
+    clip: {fileID: 8300000, guid: 56e5ac782bb784a5b8a37969a6d4b644, type: 3}
+    volume: 0.5
+    note: 便利店开门
   - id: 4
-    clip: {fileID: 0}
-    volume: 0.7
-    note: "第一章：嘈杂声"
+    clip: {fileID: 8300000, guid: 962309c42882e424eb646c9b6ac6c13e, type: 3}
+    volume: 0.18
+    note: 便利店人声环境
   - id: 5
-    clip: {fileID: 0}
-    volume: 0.7
-    note: "第一章：便利店自动播放欢迎光临等语音"
+    clip: {fileID: 8300000, guid: 3f6bc4560bb89454185721931aa258d4, type: 3}
+    volume: 0.5
+    note: 便利店进门提示音
   - id: 6
     clip: {fileID: 0}
     volume: 0.7
-    note: "第二章：急促的敲门声"
+    note: 急促敲门：原 m4a 未被 Unity 识别，待替换为可导入素材
   - id: 7
-    clip: {fileID: 0}
-    volume: 0.7
-    note: "第二章：轻微刮擦"
+    clip: {fileID: 8300000, guid: 0872c686b12cb475f96b7253e278b6b3, type: 3}
+    volume: 0.3
+    note: 窗边刮擦和录音
   - id: 8
-    clip: {fileID: 0}
-    volume: 0.7
-    note: "第二章：低低的风呼声与沙沙声"
+    clip: {fileID: 8300000, guid: c4fb3ddf6ea0a45aa99a200795cfedb8, type: 3}
+    volume: 0.18
+    note: 窗边风声和录音
   - id: 9
-    clip: {fileID: 0}
-    volume: 0.7
-    note: "第二章：渐行渐近的咚咚声，类似大型动物踩在木质地板上的声音"
+    clip: {fileID: 8300000, guid: 944146bd943fc4cd49f5bd9f684cbd1b, type: 3}
+    volume: 0.42
+    note: 渐近渐远的脚步声
   - id: 10
-    clip: {fileID: 0}
-    volume: 0.7
-    note: "第三章：墙钟的摆动声"
+    clip: {fileID: 8300000, guid: f0325a967ca584928b7af64adcc04333, type: 3}
+    volume: 0.14
+    note: 守宫家的钟摆环境声
   - id: 11
-    clip: {fileID: 0}
-    volume: 0.7
-    note: "第三章：锁门声"
+    clip: {fileID: 8300000, guid: 67d24dba6048b464bb7add24864ca5e3, type: 3}
+    volume: 0.65
+    note: 开关门时锁舌声
   backgrounds:
   - background: 事务所草图
     sound: 1
-  - background: 事务所草图
+  - background: 事务所
+    sound: 1
+  - background: 学校侧院
+    sound: 1
+  - background: 街道
     sound: 2
   - background: 便利店草图
     sound: 4
-  - background: 便利店草图
+  - background: 便利店
+    sound: 4
+  - background: 守宫家
+    sound: 10
+  storyCues:
+  - levelId: Level_01
+    nodeId: D_102
+    sound: 6
+    action: 0
+    fadeSeconds: 0.05
+  - levelId: Level_01
+    nodeId: D_104
+    sound: 3
+    action: 0
+    fadeSeconds: 0.3
+  - levelId: Level_01
+    nodeId: D_401
     sound: 5
-  storyCues: []
+    action: 0
+    fadeSeconds: 0.1
+  - levelId: Level_02
+    nodeId: D2_OPEN_07
+    sound: 6
+    action: 0
+    fadeSeconds: 0.05
+  - levelId: Level_02
+    nodeId: D_FL02_01
+    sound: 8
+    action: 1
+    fadeSeconds: 0.5
+  - levelId: Level_02
+    nodeId: D_FL02_01
+    sound: 7
+    action: 0
+    fadeSeconds: 0.5
+  - levelId: Level_02
+    nodeId: D_FL02_04
+    sound: 8
+    action: 2
+    fadeSeconds: 0.6
+  - levelId: Level_02
+    nodeId: D_FL03_01
+    sound: 8
+    action: 1
+    fadeSeconds: 0.4
+  - levelId: Level_02
+    nodeId: D_FL03_01
+    sound: 7
+    action: 0
+    fadeSeconds: 0.4
+  - levelId: Level_02
+    nodeId: D_FL03_01
+    sound: 9
+    action: 1
+    fadeSeconds: 0.3
+  - levelId: Level_02
+    nodeId: D_FL03_04
+    sound: 8
+    action: 2
+    fadeSeconds: 0.8
+  - levelId: Level_02
+    nodeId: D_FL03_04
+    sound: 9
+    action: 2
+    fadeSeconds: 0.8
+  - levelId: Level_02
+    nodeId: D_Q_F1_OK_04
+    sound: 8
+    action: 1
+    fadeSeconds: 0.3
+  - levelId: Level_02
+    nodeId: D_Q_F1_OK_04
+    sound: 7
+    action: 0
+    fadeSeconds: 0.4
+  - levelId: Level_02
+    nodeId: D_Q_F1_OK_06
+    sound: 8
+    action: 2
+    fadeSeconds: 0.6
+  - levelId: Level_02
+    nodeId: D_Q_F2_OK_08
+    sound: 9
+    action: 1
+    fadeSeconds: 0.3
+  - levelId: Level_02
+    nodeId: D_Q_F2_OK_09
+    sound: 9
+    action: 2
+    fadeSeconds: 0.7
+  - levelId: Level_03
+    nodeId: D3_TR04_04
+    sound: 11
+    action: 0
+    fadeSeconds: 0.05
+  - levelId: Level_03
+    nodeId: D3_OFFICE_14
+    sound: 6
+    action: 0
+    fadeSeconds: 0.05
   musicCues: []
