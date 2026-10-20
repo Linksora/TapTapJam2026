@@ -332,6 +332,11 @@ public sealed partial class StoryManager : MonoBehaviour
         dialogueHoldUntil = Time.unscaledTime + dialogue.HoldSeconds;
         waitQuestionId = null;
         bool narration = dialogue.Speaker == "系统" || dialogue.Speaker == "旁白";
+        // 与说话人同名的路径沿用当前表情；差分路径才切换主角立绘。
+        if (dialogue.Speaker == dialogueBox.CurrentMainCharacterId
+            && !string.IsNullOrWhiteSpace(dialogue.PortraitPath)
+            && dialogue.PortraitPath != dialogue.Speaker)
+            dialogueBox.SetMainCharacterPortrait(dialogue.Speaker, PortraitLoader.Load(dialogue.PortraitPath));
         Sprite portrait = narration || dialogue.Speaker == dialogueBox.CurrentMainCharacterId ? null
             : PortraitLoader.Load(string.IsNullOrWhiteSpace(dialogue.PortraitPath)
                 ? dialogue.Speaker : dialogue.PortraitPath);

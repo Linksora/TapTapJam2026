@@ -183,13 +183,35 @@ public sealed class DialogueBoxView : MonoBehaviour
     public void SetMainCharacters(params string[] ids)
     {
         string current = CurrentMainCharacterId;
+        var previousPortraits = new Dictionary<string, Sprite>();
+        foreach (MainCharacterEntry character in mainCharacters)
+            if (character != null && !string.IsNullOrWhiteSpace(character.characterId))
+                previousPortraits[character.characterId] = character.portrait;
         mainCharacters.Clear();
         foreach (string id in ids)
-            if (!string.IsNullOrWhiteSpace(id)) mainCharacters.Add(new MainCharacterEntry { characterId = id.Trim(), portrait = PortraitLoader.Load(id.Trim()) });
+            if (!string.IsNullOrWhiteSpace(id))
+            {
+                string characterId = id.Trim();
+                mainCharacters.Add(new MainCharacterEntry
+                {
+                    characterId = characterId,
+                    portrait = previousPortraits.TryGetValue(characterId, out Sprite previous) && previous != null
+                        ? previous : PortraitLoader.Load(characterId)
+                });
+            }
         if (mainCharacters.Count == 0) mainCharacters.Add(new MainCharacterEntry());
         currentMainCharacterIndex = Mathf.Max(0, mainCharacters.FindIndex(entry => entry.characterId == current));
         RefreshMainCharacter(); RefreshCharacter();
         MainCharacterChanged?.Invoke(CurrentMainCharacterId);
+    }
+
+    public void SetMainCharacterPortrait(string characterId, Sprite portrait)
+    {
+        if (portrait == null) return;
+        int index = mainCharacters.FindIndex(entry => entry.characterId == characterId);
+        if (index < 0) return;
+        mainCharacters[index].portrait = portrait;
+        if (index == currentMainCharacterIndex) RefreshMainCharacter();
     }
 
     public void SelectMainCharacter(string id)

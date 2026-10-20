@@ -16,7 +16,7 @@ MonoBehaviour:
   entryClue: {fileID: 0}
   speaker: "\u5C0F\u6BDB"
   text: "\u8BF4\u6C6A\u6C6A\u6C6A\u6C6A\u5230\uFF1F"
-  portraitPath: "\u5C0F\u6BDB"
+  portraitPath: "\u5C0F\u6BDB-\u60CA\u8BB6"
   option1Text: 
   option1Target: 
   option2Text: 
