@@ -11,9 +11,17 @@ public sealed class TitleMenu : MonoBehaviour
     [SerializeField] private Button startButton;
     [SerializeField] private Button continueButton;
     [SerializeField] private Button quitButton;
+    [Header("标题精灵摆动")]
+    [SerializeField] private RectTransform titleGraphic;
+    [SerializeField, Range(0f, 15f)] private float titleSwingDegrees = 5f;
+    [SerializeField, Min(0.1f)] private float titleSwingPeriod = 2.4f;
+    private Quaternion titleRestRotation;
+    private float titleTime;
 
     private void Awake()
     {
+        Time.timeScale = 1f;
+        if (titleGraphic != null) titleRestRotation = titleGraphic.localRotation;
         Font chineseFont = GameFont.Primary;
         if (chineseFont != null)
         {
@@ -31,6 +39,19 @@ public sealed class TitleMenu : MonoBehaviour
         {
             continueButton.interactable = PlayerPrefs.HasKey(LastSceneKey);
         }
+    }
+
+    private void Update()
+    {
+        if (titleGraphic == null) return;
+        titleTime += Time.unscaledDeltaTime;
+        float angle = Mathf.Sin(titleTime * Mathf.PI * 2f / Mathf.Max(.1f, titleSwingPeriod)) * titleSwingDegrees;
+        titleGraphic.localRotation = titleRestRotation * Quaternion.Euler(0, 0, angle);
+    }
+
+    private void OnDisable()
+    {
+        if (titleGraphic != null) titleGraphic.localRotation = titleRestRotation;
     }
 
     public void StartGame()
