@@ -45,35 +45,6 @@ public sealed class DialogueBoxView : MonoBehaviour
     private DeductionBoardView deductionBoard;
     private bool showingBoard;
     private Button avatarButton;
-    private Text explorationHint;
-
-    public void SetExplorationHint(string text)
-    {
-        if (string.IsNullOrEmpty(text))
-        {
-            if (explorationHint != null) explorationHint.gameObject.SetActive(false);
-            return;
-        }
-        if (explorationHint == null)
-        {
-            var hint = new GameObject("ExplorationHint", typeof(RectTransform), typeof(Text), typeof(Shadow));
-            hint.transform.SetParent(transform, false);
-            explorationHint = hint.GetComponent<Text>();
-            explorationHint.font = GameFont.Primary;
-            explorationHint.fontSize = 24;
-            explorationHint.alignment = TextAnchor.MiddleCenter;
-            explorationHint.color = Color.white;
-            explorationHint.raycastTarget = false;
-            hint.GetComponent<Shadow>().effectColor = new Color(0, 0, 0, .85f);
-            var rect = explorationHint.rectTransform;
-            rect.anchorMin = rect.anchorMax = new Vector2(.5f, 1);
-            rect.anchoredPosition = new Vector2(0, 28);
-            rect.sizeDelta = new Vector2(650, 48);
-        }
-        explorationHint.text = text;
-        explorationHint.gameObject.SetActive(true);
-    }
-
     public string ConversationPartnerId { get; private set; }
     public bool IsShowing { get; private set; }
     public bool IsWaitingForEvidence { get; private set; }

@@ -204,7 +204,6 @@ public sealed partial class StoryManager : MonoBehaviour
         if (LevelId == "Level_03")
         {
             dialogueBox.SetMainCharacterInteractionEnabled(false);
-            dialogueBox.SetExplorationHint(null);
         }
         if (targetId == "RETURN_SEARCH") { FinishInspection(); return; }
         if (!string.IsNullOrWhiteSpace(targetId) && targetId.StartsWith(ScenePrefix))
@@ -385,10 +384,7 @@ public sealed partial class StoryManager : MonoBehaviour
         if (LevelId == "Level_03")
         {
             dialogueBox.SetMainCharacterInteractionEnabled(!string.IsNullOrEmpty(dialogue.AlternateTarget));
-            bool hasCharacterMenu = dialogue.AlternateTarget == "D3_LETTER_OUTER_MENU"
-                || dialogue.AlternateTarget == "D3_LETTER_INNER_MENU"
-                || dialogue.AlternateTarget == "D3_LETTER_FINAL_MENU";
-            dialogueBox.SetExplorationHint(hasCharacterMenu ? "（点击小毛与人物互动）" : null);
+
         }
         SetScenePanningEnabled(true);
         BeginNavigation(dialogue);

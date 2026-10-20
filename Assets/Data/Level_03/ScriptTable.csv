@@ -142,7 +142,7 @@ D3_LETTER_ARRIVE_11,,小狗,我只问了便利店，差点漏了你家！,小狗
 D3_LETTER_ARRIVE_12,,松鼠,她说姐姐出去有事，写完就回去。我以为姐姐知道，手机放卧室充电，刚才才拿到。,松鼠,,,,,D3_LETTER_ARRIVE_13,,,Dialogue,,,,,,,,,,,
 D3_LETTER_ARRIVE_13,,小毛,下次孩子来，先确认家里知不知道。刚才我们一直在找。,小毛,,,,,D3_LETTER_ARRIVE_14,,,Dialogue,,,,,,,,,,,
 D3_LETTER_ARRIVE_14,,松鼠,嗯，抱歉。我也跟她说清了。,松鼠,,,,,D3_LETTER_START,,,Dialogue,,,,,,,,,,,
-D3_LETTER_START,,小毛,先在外屋核对姐姐的安排，也看看她借过的笔。,小毛,开始调查,D3_LETTER_OUTER_SEARCH,,,,,,Dialogue,,,,,,,,,,,
+D3_LETTER_START,,小毛,先在外屋核对姐姐的安排，也看看她借过的笔。,小毛,开始调查,D3_LETTER_OUTER_HINT,,,,,,Dialogue,,,,,,,,,,,
 D3_LETTER_OUTER_SEARCH,,,,,,,,,D3_LETTER_DOOR_CONSENT_01,,LT01|LT02|LT03|LT06,Search,,,,小毛,松鼠家,,,,,,D3_LETTER_OUTER_MENU
 D3_LETTER_OUTER_MENU,,小毛,先和姐姐聊聊，还是再看看？,小毛,与姐姐交互,D3_LETTER_SISTER_MENU,再看看,RESUME_SEARCH,,,,Dialogue,,,,,,,,,,,
 D3_LETTER_SISTER_MENU,,守宫姐姐,你想先问哪件事？,守宫姐姐,今天的请假与纪念日,INSPECT:LT01:D3_LT01_01,礼物与最近的时间安排,INSPECT:LT06:D3_LT02_01,,,,Dialogue,,,,,,,,,,,
@@ -182,7 +182,7 @@ D3_LETTER_DOOR_CONSENT_02,,小毛,是我。能进去吗？,小毛,,,,,D3_LETTER_
 D3_LETTER_DOOR_CONSENT_03,,守宫妹妹,……嗯。,守宫妹妹,,,,,D3_LETTER_ENTER_ASK,,,Dialogue,,,,,,,,,,,
 D3_LETTER_ENTER_ASK,,小毛,她同意了。现在进去吗？,小毛,进入里间,D3_LETTER_ENTER_INNER,再看看,D3_LETTER_OUTER_UNLOCKED,,,,Dialogue,,,,,,,,,,,
 D3_LETTER_OUTER_UNLOCKED,,,,,,,,,,,,Search,,,,小毛,松鼠家,Explore,,,,,D3_LETTER_ENTER_ASK
-D3_LETTER_ENTER_INNER,,旁白,小毛来到里间桌边，在妹妹对面坐下，留出距离。,,,,,,D3_LETTER_INNER_SEARCH,,,Dialogue,,,,,,Letter:Inside,,,,,
+D3_LETTER_ENTER_INNER,,旁白,小毛来到里间桌边，在妹妹对面坐下，留出距离。,,,,,,D3_LETTER_INNER_HINT,,,Dialogue,,,,,,Letter:Inside,,,,,
 D3_LETTER_INNER_SEARCH,,,,,,,,,D3_LETTER_INNER_DONE,,LT04|LT05,Search,,,,小毛,松鼠家,,,,,,D3_LETTER_INNER_MENU
 D3_LETTER_INNER_MENU,,小毛,要和妹妹聊聊吗？,小毛,与妹妹交互,D3_LETTER_YOUNGER_MENU,再看看,RESUME_SEARCH,,,,Dialogue,,,,,,,,,,,
 D3_LETTER_YOUNGER_MENU,,守宫妹妹,……你想问什么？,守宫妹妹,看看你愿意交给我的信,INSPECT:LT04:D3_LT04_01,聊聊那次向学校求助,INSPECT:LT05:D3_LT05_01,,,,Dialogue,,,,,,,,,,,
@@ -207,7 +207,7 @@ D3_LT04_18,,守宫妹妹,……我想写开心一点。今天应该开心的。,
 D3_LETTER_INNER_DONE,,小毛,她愿意说的两件事都记下了。先回外屋和松鼠核对来访时间吧。,小毛,走出里间,D3_LETTER_EXIT_INNER,再看看,D3_LETTER_INNER_READY,,,,Dialogue,,,,,,,,,,,
 D3_LETTER_INNER_READY,,,,,,,,,,,,Search,,,,小毛,松鼠家,Explore,,,,,D3_LETTER_INNER_DONE
 D3_LETTER_EXIT_LOCKED_01,,小毛,先听她把信和那次求助的经历说完，再去外屋核对。,小毛,,,,,RETURN_SEARCH,,,Dialogue,,,,,,,,,,,
-D3_LETTER_EXIT_INNER,,旁白,小毛回到外屋，松鼠在桌边。,,,,,,D3_LETTER_FINAL_SEARCH,,,Dialogue,,,,,,Letter:Outside,,,,,
+D3_LETTER_EXIT_INNER,,旁白,小毛回到外屋，松鼠在桌边。,,,,,,D3_LETTER_FINAL_HINT,,,Dialogue,,,,,,Letter:Outside,,,,,
 D3_LETTER_FINAL_SEARCH,,,,,,,,,D3_LETTER_EVIDENCE_READY_01,,LT07,Search,,,,小毛,松鼠家,,,,,,D3_LETTER_FINAL_MENU
 D3_LETTER_FINAL_MENU,,小毛,再和松鼠确认一下今天的来访情况？,小毛,与松鼠交互,INSPECT:LT07:D3_LT07_01,再看看,RESUME_SEARCH,,,,Dialogue,,,,,,,,,,,
 D3_LETTER_EVIDENCE_READY_01,,小毛,两边的准备、她自己的信，还有今天的来访安排，都记下了。,小毛,,,,,D3_LETTER_EVIDENCE_READY_02,,,Dialogue,,,,,,,,,,,
@@ -384,3 +384,6 @@ D3_OFFICE_16,,小毛,（表情切换：微笑）请进。,小毛,,,,,D3_OFFICE_1
 D3_OFFICE_17,,旁白,本章完,,,,,,D3_CHAPTER_END,,,Dialogue,,,,,,,,,,,
 D3_CHAPTER_END,,系统,第三章完。,,留在事务所,D3_POST_END,,,,,,Dialogue,,,,,,,,,,,
 D3_POST_END,,,,,,,,,,事务所,,Search,,,,小毛,事务所,Explore,,,,,
+D3_LETTER_OUTER_HINT,,旁白,（点击小毛与人物互动）,,,,,,D3_LETTER_OUTER_SEARCH,,,Dialogue,,,,,,,,,,,
+D3_LETTER_INNER_HINT,,旁白,（点击小毛与人物互动）,,,,,,D3_LETTER_INNER_SEARCH,,,Dialogue,,,,,,,,,,,
+D3_LETTER_FINAL_HINT,,旁白,（点击小毛与人物互动）,,,,,,D3_LETTER_FINAL_SEARCH,,,Dialogue,,,,,,,,,,,

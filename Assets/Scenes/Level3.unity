@@ -3183,7 +3183,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScenePanner
   background: {fileID: 1073450772}
-  moveSpeed: 12
+  moveSpeed: 24
   smoothTime: 0.12
   edgePadding: 0.3
 --- !u!114 &534965314 stripped
@@ -5807,7 +5807,7 @@ BoxCollider2D:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1097548729}
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 3
   m_Density: 1
   m_Material: {fileID: 0}
