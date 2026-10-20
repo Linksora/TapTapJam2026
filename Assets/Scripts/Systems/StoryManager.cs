@@ -577,19 +577,10 @@ public sealed partial class StoryManager : MonoBehaviour
         inConfrontationWait = true;
         string portraitPath = string.IsNullOrWhiteSpace(question.HesitantPortraitPath)
             ? who : question.HesitantPortraitPath;
-        if (LevelId == "Level_03")
-        {
-            if (questionId.StartsWith("Q_Letter") && who == "守宫妹妹")
-                dialogueBox.Show(who, question.Statement, PortraitLoader.Load(portraitPath),
-                    ("出示证据", () => ShowPresentChoices(who)),
-                    ("先休息", () => ShowLetterBreak(questionId)));
-            else
-                dialogueBox.Show(who, question.Statement, PortraitLoader.Load(portraitPath),
-                    ("出示证据", () => ShowPresentChoices(who)));
-            return;
-        }
+        System.Action pause = LevelId == "Level_03" && questionId.StartsWith("Q_Letter") && who == "守宫妹妹"
+            ? () => ShowLetterBreak(questionId) : null;
         dialogueBox.ShowConfrontation(who, PortraitLoader.Load(portraitPath), question.Statement,
-            clue => StartConfrontation(who, clue));
+            clue => StartConfrontation(who, clue), pause);
     }
 
     private void ShowLetterBreak(string questionId, string activity = null)

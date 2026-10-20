@@ -4,8 +4,8 @@ using UnityEngine;
 
 /// <summary>
 /// 按文件名加载立绘，带缓存。
-/// 美术 PNG 放在 Assets/美术合集 下，执行菜单 Tools/同步美术到 Resources 后，
-/// 会镜像到 Assets/Resources/Art（含子目录），这里按文件名（不带扩展名）查找，
+/// 从 Assets/Resources/Art（含子目录）按精灵名（不带扩展名）查找；
+/// 缺少“角色-表情”时使用该角色默认立绘，
 /// CSV 里只需写文件名，不用关心它在哪个子文件夹。
 /// </summary>
 public static class PortraitLoader
@@ -14,8 +14,18 @@ public static class PortraitLoader
     private const string LegacyFolder = "Portraits/";
 
     private static readonly Dictionary<string, Sprite> Cache = new();
+    private static readonly HashSet<string> MissingWarnings = new();
     private static Dictionary<string, Sprite> artIndex;
     private static bool indexBuilt;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetCache()
+    {
+        Cache.Clear();
+        MissingWarnings.Clear();
+        artIndex = null;
+        indexBuilt = false;
+    }
 
     public static Sprite Load(string fileName)
     {
@@ -31,9 +41,21 @@ public static class PortraitLoader
         }
 
         Sprite sprite = FindInArtTree(key) ?? Resources.Load<Sprite>(LegacyFolder + key);
+        // 保留剧情中的表情名称，之后补上同名图片便会优先加载，不必再改台本。
         if (sprite == null)
         {
-            Debug.LogWarning($"[PortraitLoader] 找不到立绘：{key}（先执行 Tools/同步美术到 Resources）。");
+            int separator = key.LastIndexOf('-');
+            if (separator > 0)
+            {
+                string character = key.Substring(0, separator).Trim();
+                sprite = FindInArtTree(character) ?? Resources.Load<Sprite>(LegacyFolder + character);
+            }
+        }
+        if (sprite == null)
+        {
+            if (MissingWarnings.Add(key))
+                Debug.LogWarning($"[PortraitLoader] 找不到立绘：{key}，也没有可用的默认立绘。请检查 Resources/Art 中的精灵名称与剧情表 PortraitPath 是否一致。");
+            return null;
         }
 
         Cache[key] = sprite;
