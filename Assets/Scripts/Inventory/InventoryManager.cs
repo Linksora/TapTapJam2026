@@ -129,6 +129,18 @@ public sealed class InventoryManager : MonoBehaviour
         return true;
     }
 
+    public bool ReplaceItem(ItemData current, ItemData replacement)
+    {
+        if (current == null || replacement == null) return false;
+        int index = items.FindIndex(item => item != null && item.ItemId == current.ItemId);
+        if (index < 0 || items.Any(item => item != null && item.ItemId == replacement.ItemId)) return false;
+        items[index] = replacement;
+        currentPage = ItemsPerPage > 0 ? index / ItemsPerPage : 0;
+        RefreshUI();
+        ItemsChanged?.Invoke();
+        return true;
+    }
+
     public bool RemoveItem(ItemData item)
     {
         if (item == null || !items.Remove(item)) return false;
