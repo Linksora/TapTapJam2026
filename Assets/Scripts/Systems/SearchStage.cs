@@ -18,6 +18,10 @@ public sealed class SearchStage : MonoBehaviour
         }
         foreach (string id in dialogue.SearchClueIds)
             if (!database.WorldInteractions.Any(rule => rule.searchNodeId == dialogue.DialogueId && rule.clueId == id)
+                && !database.Dialogues.Any(line => line != null &&
+                    ((line.RewardClue != null && line.RewardClue.ItemId == id)
+                    || line.Option1Target?.StartsWith($"INSPECT:{id}:") == true
+                    || line.Option2Target?.StartsWith($"INSPECT:{id}:") == true))
                 && !inventory.Items.Any(item => item.ItemId == id))
                 Debug.LogError($"[SearchStage] 必需证据 {id} 尚未配置调查入口。", this);
     }

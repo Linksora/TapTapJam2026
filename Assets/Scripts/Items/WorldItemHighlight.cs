@@ -13,6 +13,15 @@ public sealed class WorldItemHighlight : MonoBehaviour,
     private bool hovered;
     private bool pressed;
 
+    /// <summary>剧情改变物件状态后，更新普通图，避免鼠标移出时恢复旧图。</summary>
+    public void SetNormalSprite(Sprite sprite)
+    {
+        if (sprite == null) return;
+        ResolveRenderer();
+        normalSprite = sprite;
+        Refresh();
+    }
+
     private void Awake()
     {
         ResolveRenderer();

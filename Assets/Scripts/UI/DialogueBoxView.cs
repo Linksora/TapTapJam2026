@@ -45,6 +45,34 @@ public sealed class DialogueBoxView : MonoBehaviour
     private DeductionBoardView deductionBoard;
     private bool showingBoard;
     private Button avatarButton;
+    private Text explorationHint;
+
+    public void SetExplorationHint(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            if (explorationHint != null) explorationHint.gameObject.SetActive(false);
+            return;
+        }
+        if (explorationHint == null)
+        {
+            var hint = new GameObject("ExplorationHint", typeof(RectTransform), typeof(Text), typeof(Shadow));
+            hint.transform.SetParent(transform, false);
+            explorationHint = hint.GetComponent<Text>();
+            explorationHint.font = GameFont.Primary;
+            explorationHint.fontSize = 24;
+            explorationHint.alignment = TextAnchor.MiddleCenter;
+            explorationHint.color = Color.white;
+            explorationHint.raycastTarget = false;
+            hint.GetComponent<Shadow>().effectColor = new Color(0, 0, 0, .85f);
+            var rect = explorationHint.rectTransform;
+            rect.anchorMin = rect.anchorMax = new Vector2(.5f, 1);
+            rect.anchoredPosition = new Vector2(0, 28);
+            rect.sizeDelta = new Vector2(650, 48);
+        }
+        explorationHint.text = text;
+        explorationHint.gameObject.SetActive(true);
+    }
 
     public string ConversationPartnerId { get; private set; }
     public bool IsShowing { get; private set; }
@@ -52,6 +80,14 @@ public sealed class DialogueBoxView : MonoBehaviour
     public string CurrentMainCharacterId => mainCharacters.Count > 0
         ? mainCharacters[currentMainCharacterIndex].characterId : string.Empty;
     public event Action<string> MainCharacterChanged;
+    public event Action MainCharacterClicked;
+
+    // 没有主角菜单时让鼠标穿过立绘区域，避免挡住左下方的场景调查物。
+    public void SetMainCharacterInteractionEnabled(bool enabled)
+    {
+        if (mainCharacterImage != null) mainCharacterImage.raycastTarget = enabled;
+        if (avatarButton != null) avatarButton.interactable = enabled;
+    }
 
     private void Awake()
     {
@@ -65,11 +101,13 @@ public sealed class DialogueBoxView : MonoBehaviour
             dialogueBackground = FindChildRecursive(transform, "DialogueBackground")?.gameObject;
         if (mainCharacterImage != null)
         {
+            // 预制件的立绘默认不挡鼠标；成为可点击主角后必须启用射线接收。
+            mainCharacterImage.raycastTarget = true;
             avatarButton = mainCharacterImage.GetComponent<Button>();
             if (avatarButton == null) avatarButton = mainCharacterImage.gameObject.AddComponent<Button>();
             avatarButton.targetGraphic = mainCharacterImage;
             avatarButton.transition = Selectable.Transition.None;
-            avatarButton.onClick.AddListener(NextMainCharacter);
+            avatarButton.onClick.AddListener(OnMainCharacterClicked);
             if (leftButton == null)
                 leftButton = FindChildRecursive(mainCharacterImage.transform, "LeftButton")?.GetComponent<Button>();
             if (rightButton == null)
@@ -165,6 +203,12 @@ public sealed class DialogueBoxView : MonoBehaviour
     public void PreviousMainCharacter() => SwitchMainCharacter(-1);
     public void NextMainCharacter() => SwitchMainCharacter(1);
 
+    private void OnMainCharacterClicked()
+    {
+        if (MainCharacterClicked != null) MainCharacterClicked.Invoke();
+        else NextMainCharacter();
+    }
+
     public void SetMainCharacters(params string[] ids)
     {
         string current = CurrentMainCharacterId;
@@ -257,7 +301,7 @@ public sealed class DialogueBoxView : MonoBehaviour
     {
         if (leftButton != null) leftButton.onClick.RemoveListener(PreviousMainCharacter);
         if (rightButton != null) rightButton.onClick.RemoveListener(NextMainCharacter);
-        if (avatarButton != null) avatarButton.onClick.RemoveListener(NextMainCharacter);
+        if (avatarButton != null) avatarButton.onClick.RemoveListener(OnMainCharacterClicked);
         if (evidenceReceiver != null) evidenceReceiver.OnItemReceived.RemoveListener(OnEvidenceReceived);
     }
 
