@@ -246,4 +246,4 @@ D2_EPILOGUE_16,,小毛,（……但毕竟是别人的家务事，要不要少说
 D2_EPILOGUE_17,,守宫姐姐,今天会的。还差一点，就……,守宫姐姐,,,,,D2_EPILOGUE_18,,,Dialogue,守宫姐姐表情切换：微笑。,,,,,,,,,,
 D2_EPILOGUE_18,,犀牛,说给别人没关系吗？,犀牛,,,,,D2_EPILOGUE_19,,,Dialogue,,,,,,,,,,,
 D2_EPILOGUE_19,,守宫姐姐,……,守宫姐姐,,,,,D2_EPILOGUE_20,,,Dialogue,,,,,,,,,,,
-D2_EPILOGUE_20,,小毛,（“还差一点”……？）,小毛,,,,,-1,,,Dialogue,,,,,,,,,,,
+D2_EPILOGUE_20,,小毛,（“还差一点”……？）,小毛,,,,,SCENE:Level3,,,Dialogue,,,,,,,,,,,
