@@ -119,3 +119,6 @@ InitTestScene*.unity*
 # 由 TapJam/Import All Level CSV 从 CSV 生成
 /[Aa]ssets/[Rr]esources/[Ll]evel[Dd]ata/
 /[Aa]ssets/[Rr]esources/[Ll]evel[Dd]ata.meta
+
+# Local art recovery backups and recovery tooling
+/Recovery/

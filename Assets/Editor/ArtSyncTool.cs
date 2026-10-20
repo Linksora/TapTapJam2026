@@ -1,14 +1,15 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
+using System;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
 
 /// <summary>
-/// 把 Assets/美术合集 下的所有图片镜像同步到 Assets/Resources/Art（保留子目录结构），
+/// 把 Assets/美术合集 下的图片补充到 Assets/Resources/Art（保留子目录结构），
 /// 供运行时按文件名 Resources.Load 使用。
-/// - 新增/改动的图片：复制过去并强制按 Sprite(2D) 导入；
-/// - 源文件已删除的：同步删除 Resources/Art 里的对应文件；
+/// - 新增图片按 Sprite(2D) 导入；更新前备份旧图和 meta，保留已有导入设置；
+/// - 不会删除 Resources/Art 中独立添加的图片；
 /// - 只处理图片，不动美术合集里的其他文件。
 /// </summary>
 public static class ArtSyncTool
@@ -30,12 +31,12 @@ public static class ArtSyncTool
 
         int copied = 0;
         int skipped = 0;
-        var sourceFiles = new HashSet<string>();
+        var addedFiles = new List<string>();
+        string backupRoot = Path.Combine("Recovery", "ArtSyncBackups", DateTime.Now.ToString("yyyyMMdd-HHmmss-fff"));
 
         foreach (string sourcePath in EnumerateImages(SourceRoot))
         {
-            string relative = Path.GetRelativePath(SourceRoot, sourcePath);
-            sourceFiles.Add(relative);
+            string relative = Path.GetRelativePath(SourceRoot, sourcePath).Replace('\\', '/');
             string destPath = Combine(DestResourceRoot, relative);
 
             Directory.CreateDirectory(Path.GetDirectoryName(destPath));
@@ -47,6 +48,15 @@ public static class ArtSyncTool
                 continue;
             }
 
+            if (File.Exists(destPath))
+            {
+                string backup = Path.Combine(backupRoot, relative);
+                Directory.CreateDirectory(Path.GetDirectoryName(backup));
+                File.Copy(destPath, backup, false);
+                if (File.Exists(destPath + ".meta")) File.Copy(destPath + ".meta", backup + ".meta", false);
+            }
+            else addedFiles.Add(relative);
+
             // 只复制图片本身，不复制 .meta，避免源/目标出现重复 GUID。
             File.Copy(sourcePath, destPath, true);
             copied++;
@@ -56,7 +66,7 @@ public static class ArtSyncTool
 
         // 导入完成后统一把新图设置为 Sprite。
         int configured = 0;
-        foreach (string relative in sourceFiles)
+        foreach (string relative in addedFiles)
         {
             string destPath = Combine(DestResourceRoot, relative);
             if (ConfigureAsSprite(destPath))
@@ -65,11 +75,10 @@ public static class ArtSyncTool
             }
         }
 
-        int deleted = DeleteOrphans(sourceFiles);
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
-        Debug.Log($"[ArtSync] 同步完成：复制/更新 {copied} 张，配置 Sprite {configured} 张，跳过未变 {skipped} 张，清理失效 {deleted} 张。");
+        Debug.Log($"[ArtSync] 同步完成：复制/更新 {copied} 张，配置 Sprite {configured} 张，跳过未变 {skipped} 张，未删除任何图片；更新前备份位于 {backupRoot}。");
     }
 
     /// <summary>
@@ -169,36 +178,6 @@ public static class ArtSyncTool
         }
 
         return false;
-    }
-
-    private static int DeleteOrphans(HashSet<string> sourceFiles)
-    {
-        if (!Directory.Exists(DestResourceRoot))
-        {
-            return 0;
-        }
-
-        int deleted = 0;
-        foreach (string destPath in Directory.GetFiles(DestResourceRoot, "*.*", SearchOption.AllDirectories))
-        {
-            string normalized = destPath.Replace('\\', '/');
-            string extension = Path.GetExtension(normalized).ToLowerInvariant();
-            if (System.Array.IndexOf(ImageExtensions, extension) < 0)
-            {
-                continue;
-            }
-
-            string relative = Path.GetRelativePath(DestResourceRoot, normalized).Replace('\\', '/');
-            if (sourceFiles.Contains(relative))
-            {
-                continue;
-            }
-
-            AssetDatabase.DeleteAsset(normalized);
-            deleted++;
-        }
-
-        return deleted;
     }
 
     private static string Combine(string root, string relative)

@@ -8,6 +8,15 @@ public static class StorySceneCast
 {
     public static void Run(string action, GameObject owner)
     {
+        if (action.StartsWith("EndingCG:"))
+        {
+            owner.GetComponent<ChapterThreeLetterPresentation>()?.CloseDisplay();
+            var ending = Object.FindObjectsByType<ChapterThreeEndingPresentation>(FindObjectsInactive.Include)
+                .FirstOrDefault(item => item.gameObject.scene == owner.scene);
+            if (ending != null) ending.SetVisible(action == "EndingCG:Show");
+            else Debug.LogWarning("第三章结局 CG 缺少 EndingCGImage 槽位。", owner);
+            return;
+        }
         if (action.StartsWith("Letter:"))
         {
             var letter = owner.GetComponent<ChapterThreeLetterPresentation>();

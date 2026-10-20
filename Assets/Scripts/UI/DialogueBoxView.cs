@@ -138,9 +138,11 @@ public sealed class DialogueBoxView : MonoBehaviour
     }
 
     /// <summary>对方保持沉默，保留立绘和对话区域，接受从笔记本拖来的证物。</summary>
-    public void ShowConfrontation(string characterId, Sprite portrait, string narration, Action<ItemData> onEvidence)
+    public void ShowConfrontation(string characterId, Sprite portrait, string narration, Action<ItemData> onEvidence,
+        Action onPause = null)
     {
         Show(characterId, narration, portrait);
+        if (onPause != null) SetChoices(new[] { ("先休息", onPause) });
         if (speakerText != null) speakerText.gameObject.SetActive(false);
         if (contentText != null) contentText.gameObject.SetActive(true);
         if (evidenceReceiver == null)
