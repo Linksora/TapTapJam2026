@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -11,7 +12,12 @@ public sealed class GameAudio : MonoBehaviour
     private GameAudioSettings settings;
     private AudioSource music;
     private AudioSource effects;
+    private AudioSource click;
     private readonly List<AudioSource> ambience = new List<AudioSource>();
+    private readonly List<AudioSource> transientEffects = new List<AudioSource>();
+    private readonly Dictionary<GameSound, AudioSource> storyLoops = new Dictionary<GameSound, AudioSource>();
+    private readonly Dictionary<AudioSource, Coroutine> volumeFades = new Dictionary<AudioSource, Coroutine>();
+    private Coroutine clickStop;
     private AudioListener fallbackListener;
     private string currentBackground;
     private float nextButtonScan;
@@ -44,6 +50,7 @@ public sealed class GameAudio : MonoBehaviour
         settings = Resources.Load<GameAudioSettings>("GameAudioSettings");
         music = CreateSource(true);
         effects = CreateSource(false);
+        click = CreateSource(false);
         music.clip = settings != null ? settings.backgroundMusic : Resources.Load<AudioClip>("Music/夢");
         music.volume = settings != null ? settings.musicVolume : 0.4f;
         AudioListener.volume = MasterVolumeLevel / 5f;
@@ -62,7 +69,25 @@ public sealed class GameAudio : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        if (mode == LoadSceneMode.Single) StopAmbience();
+        if (mode == LoadSceneMode.Single)
+        {
+            // Old scene cues must not keep playing over the next chapter.
+            StopAllCoroutines();
+            foreach (AudioSource source in GetComponents<AudioSource>())
+                if (source != music && source != effects && source != click)
+                {
+                    source.Stop();
+                    Destroy(source);
+                }
+            ambience.Clear();
+            transientEffects.Clear();
+            storyLoops.Clear();
+            volumeFades.Clear();
+            currentBackground = null;
+            effects.Stop();
+            click.Stop();
+            clickStop = null;
+        }
         if (scene.name == "TitleScene") PlayMusic(GameMusic.Daily);
         EnsureListener();
         BindButtons();
@@ -104,7 +129,26 @@ public sealed class GameAudio : MonoBehaviour
     public void Play(GameSound id)
     {
         GameAudioSettings.Sound sound = settings != null ? settings.Find(id) : null;
-        if (sound?.clip != null) effects.PlayOneShot(sound.clip, sound.volume);
+        if (sound?.clip == null) return;
+        if (id == GameSound.Click)
+        {
+            // The supplied file contains several clicks; use its first pop for each button press.
+            if (clickStop != null) StopCoroutine(clickStop);
+            click.Stop();
+            click.clip = sound.clip;
+            click.volume = sound.volume;
+            click.Play();
+            clickStop = StartCoroutine(StopClickAfter(0.22f));
+            return;
+        }
+        effects.PlayOneShot(sound.clip, sound.volume);
+    }
+
+    private IEnumerator StopClickAfter(float seconds)
+    {
+        yield return new WaitForSecondsRealtime(seconds);
+        click.Stop();
+        clickStop = null;
     }
 
     // 支持 Inspector UnityEvent 传字符串，例如 DoorOpen、DoorLock。
@@ -119,7 +163,94 @@ public sealed class GameAudio : MonoBehaviour
         foreach (GameAudioSettings.StoryMusic cue in settings.musicCues)
             if (cue != null && cue.levelId == levelId && cue.nodeId == nodeId) PlayMusic(cue.music);
         foreach (GameAudioSettings.StorySound cue in settings.storyCues)
-            if (cue != null && cue.levelId == levelId && cue.nodeId == nodeId) Play(cue.sound);
+            if (cue != null && cue.levelId == levelId && cue.nodeId == nodeId)
+            {
+                switch (cue.action)
+                {
+                    case StorySoundAction.StartLoop: StartStoryLoop(cue.sound, cue.fadeSeconds); break;
+                    case StorySoundAction.StopLoop: StopStoryLoop(cue.sound, cue.fadeSeconds); break;
+                    default: PlayStoryOnce(cue.sound, cue.fadeSeconds); break;
+                }
+            }
+    }
+
+    private void PlayStoryOnce(GameSound id, float fadeSeconds)
+    {
+        GameAudioSettings.Sound sound = settings.Find(id);
+        if (sound?.clip == null) return;
+        AudioSource source = CreateSource(false);
+        source.clip = sound.clip;
+        source.volume = fadeSeconds > 0f ? 0f : sound.volume;
+        source.Play();
+        transientEffects.Add(source);
+        StartCoroutine(FinishOneShot(source, sound.volume, fadeSeconds));
+    }
+
+    private IEnumerator FinishOneShot(AudioSource source, float volume, float fadeSeconds)
+    {
+        while (source != null && source.isPlaying)
+        {
+            if (fadeSeconds > 0f)
+            {
+                float envelope = Mathf.Min(source.time / fadeSeconds,
+                    (source.clip.length - source.time) / fadeSeconds, 1f);
+                source.volume = volume * Mathf.Clamp01(envelope);
+            }
+            yield return null;
+        }
+        transientEffects.Remove(source);
+        if (source != null) Destroy(source);
+    }
+
+    private void StartStoryLoop(GameSound id, float fadeSeconds)
+    {
+        if (storyLoops.ContainsKey(id)) return;
+        GameAudioSettings.Sound sound = settings.Find(id);
+        if (sound?.clip == null) return;
+        AudioSource source = CreateSource(true);
+        source.clip = sound.clip;
+        source.volume = fadeSeconds > 0f ? 0f : sound.volume;
+        source.Play();
+        storyLoops[id] = source;
+        if (fadeSeconds > 0f) StartFade(source, sound.volume, fadeSeconds, false);
+    }
+
+    private void StopStoryLoop(GameSound id, float fadeSeconds)
+    {
+        if (!storyLoops.TryGetValue(id, out AudioSource source)) return;
+        storyLoops.Remove(id);
+        StartFade(source, 0f, fadeSeconds, true);
+    }
+
+    private void StartFade(AudioSource source, float target, float seconds, bool destroy)
+    {
+        if (source == null) return;
+        if (volumeFades.TryGetValue(source, out Coroutine previous)) StopCoroutine(previous);
+        volumeFades.Remove(source);
+        if (seconds <= 0f)
+        {
+            source.volume = target;
+            if (destroy) { source.Stop(); Destroy(source); }
+            return;
+        }
+        volumeFades[source] = StartCoroutine(FadeVolume(source, target, seconds, destroy));
+    }
+
+    private IEnumerator FadeVolume(AudioSource source, float target, float seconds, bool destroy)
+    {
+        if (source == null) yield break;
+        float initial = source.volume;
+        float elapsed = 0f;
+        while (source != null && elapsed < seconds)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            source.volume = Mathf.Lerp(initial, target, Mathf.Clamp01(elapsed / seconds));
+            yield return null;
+        }
+        if (source == null) yield break;
+        source.volume = target;
+        volumeFades.Remove(source);
+        if (destroy) { source.Stop(); Destroy(source); }
     }
 
     public void PlayMusic(GameMusic id)
@@ -151,7 +282,9 @@ public sealed class GameAudio : MonoBehaviour
     public void SetBackground(string background)
     {
         if (currentBackground == background) return;
-        StopAmbience();
+        foreach (AudioSource source in ambience)
+            StartFade(source, 0f, 0.6f, true);
+        ambience.Clear();
         currentBackground = background;
         if (settings == null) return;
         foreach (GameAudioSettings.BackgroundSound cue in settings.backgrounds)
@@ -161,9 +294,10 @@ public sealed class GameAudio : MonoBehaviour
             if (sound?.clip == null) continue;
             AudioSource source = CreateSource(true);
             source.clip = sound.clip;
-            source.volume = sound.volume;
+            source.volume = 0f;
             source.Play();
             ambience.Add(source);
+            StartFade(source, sound.volume, 0.6f, false);
         }
     }
 
@@ -171,6 +305,9 @@ public sealed class GameAudio : MonoBehaviour
     {
         foreach (AudioSource source in ambience)
         {
+            if (source == null) continue;
+            if (volumeFades.TryGetValue(source, out Coroutine fade)) StopCoroutine(fade);
+            volumeFades.Remove(source);
             source.Stop();
             Destroy(source);
         }
