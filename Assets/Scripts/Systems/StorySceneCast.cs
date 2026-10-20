@@ -8,6 +8,20 @@ public static class StorySceneCast
 {
     public static void Run(string action, GameObject owner)
     {
+        if (action.StartsWith("Letter:"))
+        {
+            var letter = owner.GetComponent<ChapterThreeLetterPresentation>();
+            if (letter == null) letter = owner.AddComponent<ChapterThreeLetterPresentation>();
+            letter.Apply(action.Substring("Letter:".Length));
+            return;
+        }
+        if (action.StartsWith("Chapter3Home:"))
+        {
+            var home = owner.GetComponent<ChapterThreeHomePresentation>();
+            if (home == null) home = owner.AddComponent<ChapterThreeHomePresentation>();
+            home.Apply(action.Substring("Chapter3Home:".Length));
+            return;
+        }
         if (action == "Footage" || action == "ReplayDrink" || action == "StreetReplay")
         {
             var player = owner.GetComponent<InvestigationCutscene>();

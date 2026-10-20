@@ -43,6 +43,7 @@ public sealed partial class StoryManager : MonoBehaviour
     private HashSet<string> searchRequiredClues;
     private HashSet<string> searchAvailableClues;
     private string searchCompleteTarget;
+    private bool searchAutoCompletes = true;
 
     public string LevelId { get; private set; }
     public bool IsSearching => inSearchPhase;
@@ -84,6 +85,7 @@ public sealed partial class StoryManager : MonoBehaviour
         }
 
         clickCatcher.onClick.AddListener(OnBoxClicked);
+        if (LevelId == "Level_03") dialogueBox.MainCharacterClicked += OnExplorationCharacterClicked;
         dialogueBox.gameObject.SetActive(true);
         dialogueBox.Hide();
 
@@ -180,6 +182,7 @@ public sealed partial class StoryManager : MonoBehaviour
 
     private void OnBoxClicked()
     {
+        if (delayedTransition != null) return;
         if (Time.unscaledTime < dialogueHoldUntil) return;
         if (inConfrontationWait || !dialogueBox.IsShowing || dialogueBox.IsShowingOptions)
         {
@@ -197,6 +200,12 @@ public sealed partial class StoryManager : MonoBehaviour
 
     private void Goto(string targetId, HashSet<string> transitions = null)
     {
+        CancelDelayedTransition();
+        if (LevelId == "Level_03")
+        {
+            dialogueBox.SetMainCharacterInteractionEnabled(false);
+            dialogueBox.SetExplorationHint(null);
+        }
         if (targetId == "RETURN_SEARCH") { FinishInspection(); return; }
         if (!string.IsNullOrWhiteSpace(targetId) && targetId.StartsWith(ScenePrefix))
         {
@@ -278,7 +287,7 @@ public sealed partial class StoryManager : MonoBehaviour
             background?.Show(dialogue.Background);
         }
 
-        if (dialogue.SearchClueIds.Length > 0)
+        if (dialogue.SearchClueIds.Length > 0 || dialogue.StageAction == "Explore")
         {
             BeginSearchPhase(dialogue);
             return;
@@ -287,6 +296,13 @@ public sealed partial class StoryManager : MonoBehaviour
         // 玩法/剧本切换标记不作为台词显示，也不额外等待一次点击。
         if (dialogue.IsTransition)
         {
+            if (dialogue.HoldSeconds > 0)
+            {
+                dialogueBox.Hide();
+                opponents.HideAll();
+                ScheduleDelayedTransition(dialogue);
+                return;
+            }
             transitions ??= new HashSet<string>();
             if (!transitions.Add(targetId))
             {
@@ -308,7 +324,8 @@ public sealed partial class StoryManager : MonoBehaviour
     {
         dialogueHoldUntil = Time.unscaledTime + dialogue.HoldSeconds;
         waitQuestionId = null;
-        Sprite portrait = dialogue.Speaker == dialogueBox.CurrentMainCharacterId ? null
+        bool narration = dialogue.Speaker == "系统" || dialogue.Speaker == "旁白";
+        Sprite portrait = narration || dialogue.Speaker == dialogueBox.CurrentMainCharacterId ? null
             : PortraitLoader.Load(string.IsNullOrWhiteSpace(dialogue.PortraitPath)
                 ? dialogue.Speaker : dialogue.PortraitPath);
 
@@ -334,7 +351,7 @@ public sealed partial class StoryManager : MonoBehaviour
         else
         {
             pendingNextTarget = dialogue.NextTarget;
-            dialogueBox.Show(dialogue.Speaker == "系统" || dialogue.Speaker == "旁白" ? string.Empty : dialogue.Speaker, dialogue.Text, portrait);
+            dialogueBox.Show(narration ? string.Empty : dialogue.Speaker, dialogue.Text, portrait);
         }
 
         opponents.Show(dialogueBox.ConversationPartnerId);
@@ -346,7 +363,15 @@ public sealed partial class StoryManager : MonoBehaviour
     /// </summary>
     private void BeginSearchPhase(DialogueData dialogue)
     {
+        inspectionSearchId = inspectionClueId = null;
+        searchAutoCompletes = dialogue.StageAction != "Explore";
+        if (!searchAutoCompletes)
+        {
+            // 完成搜证后的自由查看允许点出口、取消或直接进入下一张背景。
+            dialogueBox.ClearConversationPartner();
+        }
         currentSearchId = dialogue.DialogueId;
+        conversationSearchId = currentSearchId;
         searchRequiredClues = new HashSet<string>(dialogue.SearchClueIds);
         searchAvailableClues = new HashSet<string>(dialogue.SearchClueIds);
         searchAvailableClues.UnionWith(dialogue.OptionalClueIds);
@@ -357,10 +382,18 @@ public sealed partial class StoryManager : MonoBehaviour
         opponents.HideAll();
 
         inSearchPhase = true;
+        if (LevelId == "Level_03")
+        {
+            dialogueBox.SetMainCharacterInteractionEnabled(!string.IsNullOrEmpty(dialogue.AlternateTarget));
+            bool hasCharacterMenu = dialogue.AlternateTarget == "D3_LETTER_OUTER_MENU"
+                || dialogue.AlternateTarget == "D3_LETTER_INNER_MENU"
+                || dialogue.AlternateTarget == "D3_LETTER_FINAL_MENU";
+            dialogueBox.SetExplorationHint(hasCharacterMenu ? "（点击小毛与人物互动）" : null);
+        }
         SetScenePanningEnabled(true);
         BeginNavigation(dialogue);
         searchStage.BeginSearch(dialogue, database, inventory);
-        if (HasAllSearchClues()) CompleteSearch();
+        if (searchAutoCompletes && HasAllSearchClues()) CompleteSearch();
     }
 
     private void SetScenePanningEnabled(bool enabled)
@@ -422,7 +455,7 @@ public sealed partial class StoryManager : MonoBehaviour
     {
         // FinishInspection owns the final clue transition. Don't complete the
         // search re-entrantly while it is adding that clue and showing its receipt.
-        if (!inSearchPhase || !string.IsNullOrEmpty(inspectionSearchId))
+        if (!searchAutoCompletes || !inSearchPhase || !string.IsNullOrEmpty(inspectionSearchId))
         {
             return;
         }
@@ -435,6 +468,16 @@ public sealed partial class StoryManager : MonoBehaviour
 
     private void HandleOption(string target)
     {
+        if (target == "RESUME_SEARCH" && !string.IsNullOrEmpty(conversationSearchId))
+        {
+            Goto(conversationSearchId);
+            return;
+        }
+        if (target.StartsWith("INSPECT:"))
+        {
+            BeginConversationInspection(target);
+            return;
+        }
         if (target.StartsWith(PresentPrefix))
         {
             ShowPresentChoices(target[PresentPrefix.Length..]);
@@ -448,11 +491,12 @@ public sealed partial class StoryManager : MonoBehaviour
     private void ShowPresentChoices(string characterId)
     {
         string who = string.IsNullOrEmpty(characterId) ? "对方" : characterId;
+        string returnTarget = inConfrontationWait ? waitQuestionId : currentDialogueId;
 
         if (inventory == null || inventory.Items.Count == 0)
         {
             dialogueBox.Show(dialogueBox.CurrentMainCharacterId, "（还没有可以出示的证物。先去店里调查一下吧。）", null,
-                ("返回", () => Goto(currentDialogueId)));
+                ("返回", () => Goto(returnTarget)));
             return;
         }
 
@@ -467,7 +511,7 @@ public sealed partial class StoryManager : MonoBehaviour
             options.Add((item.ItemName, () => StartConfrontation(characterId, item)));
         }
 
-        options.Add(("（先不出示）", () => Goto(currentDialogueId)));
+        options.Add(("（先不出示）", () => Goto(returnTarget)));
 
         dialogueBox.Show(dialogueBox.CurrentMainCharacterId, $"要向{who}出示哪件证物？", null, options.ToArray());
     }
@@ -524,8 +568,36 @@ public sealed partial class StoryManager : MonoBehaviour
         inConfrontationWait = true;
         string portraitPath = string.IsNullOrWhiteSpace(question.HesitantPortraitPath)
             ? who : question.HesitantPortraitPath;
+        if (LevelId == "Level_03")
+        {
+            if (questionId.StartsWith("Q_Letter") && who == "守宫妹妹")
+                dialogueBox.Show(who, question.Statement, PortraitLoader.Load(portraitPath),
+                    ("出示证据", () => ShowPresentChoices(who)),
+                    ("先休息", () => ShowLetterBreak(questionId)));
+            else
+                dialogueBox.Show(who, question.Statement, PortraitLoader.Load(portraitPath),
+                    ("出示证据", () => ShowPresentChoices(who)));
+            return;
+        }
         dialogueBox.ShowConfrontation(who, PortraitLoader.Load(portraitPath), question.Statement,
             clue => StartConfrontation(who, clue));
+    }
+
+    private void ShowLetterBreak(string questionId, string activity = null)
+    {
+        // 题号由按钮闭包保留；休息不跳到下一题，也不重置证词和选词。
+        GetComponent<ChapterThreeLetterPresentation>()?.CloseDisplay();
+        inConfrontationWait = false;
+        if (activity == null)
+        {
+            dialogueBox.Show("小毛", "先休息一会儿，不着急。", null,
+                ("喝点水", () => ShowLetterBreak(questionId, "水在这里。等你愿意，我们再继续。")),
+                ("和松鼠聊两句", () => ShowLetterBreak(questionId, "松鼠说这里可以慢慢坐，有需要就告诉她。")));
+            return;
+        }
+        dialogueBox.Show("小毛", activity + "\n现在愿意接着聊吗？", null,
+            ("妹妹点头，继续", () => Goto(questionId)),
+            ("再休息一会儿", () => ShowLetterBreak(questionId)));
     }
 
     private void AnswerAssembly(QuestionData question, int chosenIndex)

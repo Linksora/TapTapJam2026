@@ -14,6 +14,7 @@ public sealed class LevelDatabase : ScriptableObject
     [SerializeField] private List<WorldInteractionData> worldInteractions = new();
     [SerializeField] private List<ExplorationZoneData> zones = new();
     public IReadOnlyList<ExplorationZoneData> Zones => zones;
+    public IReadOnlyList<DialogueData> Dialogues => dialogues;
 
     public IReadOnlyList<WorldInteractionData> WorldInteractions => worldInteractions;
     public DeductionData GetDeduction(string id) => deductions?.Find(group => group != null && group.groupId == id);

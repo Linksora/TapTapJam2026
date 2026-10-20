@@ -51,8 +51,9 @@ public sealed partial class StoryManager
         {
             string next = activeDeduction.nextTarget;
             string completionLine = activeDeduction.mode == "Hypothesis"
-                ? "四句话已经填好。"
-                : activeDeduction.mode == "Truth" ? "四个关键词都已核实。" : "问题都整理好了。";
+                ? $"{activeDeduction.statements.Length}句话已经填好。"
+                : activeDeduction.mode == "Truth" ? $"{activeDeduction.statements.Length}个关键词都已核实。" : "问题都整理好了。";
+            if (activeDeduction.groupId == "B_LetterTruth") completionLine = "已核对。";
             dialogueBox.Show(dialogueBox.CurrentMainCharacterId, completionLine,
                 null, (activeDeduction.confirmText, () =>
                 {

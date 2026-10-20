@@ -7,6 +7,47 @@ public sealed partial class StoryManager
     private string inspectionSearchId;
     private string inspectionClueId;
     private ExplorationNavigator navigator;
+    private string conversationSearchId;
+
+    private void OnExplorationCharacterClicked()
+    {
+        if (!inSearchPhase || dialogueBox.CurrentMainCharacterId != "小毛") return;
+        // 自由查看节点可配置再次询问的目标；对话期间及其他阶段点击不会跳过剧情。
+        DialogueData exploration = database.GetDialogue(currentSearchId);
+        if (!string.IsNullOrEmpty(exploration?.AlternateTarget))
+        {
+            conversationSearchId = currentSearchId;
+            Goto(exploration.AlternateTarget);
+        }
+    }
+
+    private void BeginConversationInspection(string target)
+    {
+        string[] parts = target.Split(new[] { ':' }, 3);
+        DialogueData phase = database.GetDialogue(conversationSearchId);
+        if (parts.Length != 3 || phase == null || database.GetDialogue(parts[2]) == null
+            || !phase.SearchClueIds.Concat(phase.OptionalClueIds).Contains(parts[1]))
+        {
+            Debug.LogError($"对话调查入口无效或不属于当前阶段：{target}", this);
+            return;
+        }
+        inspectionSearchId = conversationSearchId;
+        inspectionClueId = parts[1];
+        if (inventory.Items.Any(item => item != null && item.ItemId == parts[1]))
+        {
+            inspectionClueId = null;
+            pendingNextTarget = "RETURN_SEARCH";
+            dialogueBox.Show("小毛", "这部分已经核对过了。");
+            return;
+        }
+        Goto(parts[2]);
+    }
+
+    private void OnDestroy()
+    {
+        if (dialogueBox != null) dialogueBox.MainCharacterClicked -= OnExplorationCharacterClicked;
+        if (inventory != null) inventory.ItemsChanged -= OnInventoryChanged;
+    }
 
     public bool TryNavigateBackground(string destination)
     {
@@ -64,6 +105,14 @@ public sealed partial class StoryManager
 
     private void FinishInspection()
     {
+        GetComponent<ChapterThreeLetterPresentation>()?.CloseDisplay();
+        if (LevelId == "Level_03") dialogueBox.ClearConversationPartner();
+        var homePresentation = GetComponent<ChapterThreeHomePresentation>();
+        if (homePresentation != null)
+        {
+            homePresentation.EndInspection();
+            dialogueBox.ClearConversationPartner();
+        }
         string phase = inspectionSearchId;
         string clue = inspectionClueId;
         if (string.IsNullOrEmpty(phase))
@@ -102,6 +151,10 @@ public sealed partial class StoryManager
                 inventory.Items.Any(item => item != null && item.ItemId == id));
             Debug.Log($"[StoryManager:{LevelId}] 证据 {clue} 已入册；搜证 {phase} 必需线索 {collectedCount}/{required.Length}，继续节点 {pendingNextTarget}。", this);
             dialogueBox.Show(dialogueBox.CurrentMainCharacterId, $"【已获得证据：{recorded.ItemName}】");
+            // 最后一张调查证据入册后，计时由系统启动，不需要再点一次提示。
+            DialogueData followUp = allCollected ? database.GetDialogue(searchCompleteTarget) : null;
+            if (followUp != null && followUp.IsTransition && followUp.HoldSeconds > 0)
+                ScheduleDelayedTransition(followUp);
             return;
         }
         Goto(phase);
@@ -118,7 +171,7 @@ public sealed partial class StoryManager
 
     public void CompleteSearch()
     {
-        if (!inSearchPhase || !HasAllSearchClues()) return;
+        if (!searchAutoCompletes || !inSearchPhase || !HasAllSearchClues()) return;
         Debug.Log($"[StoryManager:{LevelId}] 必需证据已收齐，搜证节点 {currentSearchId} 推进到 {searchCompleteTarget}。", this);
         dialogueBox.SelectMainCharacter("小毛");
         if (currentSearchId == "D_501") background.Show("学校侧院");
