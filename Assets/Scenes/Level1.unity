@@ -1789,7 +1789,7 @@ PrefabInstance:
     - target: {fileID: 7848874482019517755, guid: 0129baf80f2874c5abb46c57963ef6d3, type: 3}
       propertyPath: m_Sprite
       value: 
-      objectReference: {fileID: 9104053293010326899, guid: af2f240817391664f8a8a848ceaf1102, type: 3}
+      objectReference: {fileID: 7566875740976028570, guid: 4ca174e2a89794b58a7d175a5b9d0223, type: 3}
     - target: {fileID: 7848874482019517755, guid: 0129baf80f2874c5abb46c57963ef6d3, type: 3}
       propertyPath: m_WasSpriteAssigned
       value: 1
